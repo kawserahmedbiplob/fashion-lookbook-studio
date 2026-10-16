@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fashion Lookbook Studio v7</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap');
+body{font-family:'Inter',system-ui,sans-serif}
+.font-serif{font-family:'Cormorant Garamond',Georgia,serif}
+.glass{background:rgba(9,9,11,.85);backdrop-filter:blur(18px)}
+.premium-shadow{box-shadow:0 28px 55px -12px rgba(0,0,0,.55)}
+.scrollbar-thin::-webkit-scrollbar{width:5px}
+.scrollbar-thin::-webkit-scrollbar-thumb{background:#3f3f46;border-radius:3px}
+.drop-active{border-color:#a78bfa!important;background:rgba(167,139,250,.07)!important}
+/* Perfect image alignment inside boxes */
+.img-box{display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.img-box img{width:auto;height:auto;max-width:92%;max-height:92%;object-fit:contain;object-position:center center;display:block}
+#slide-canvas-container img{max-width:100%;max-height:100%;object-fit:contain;object-position:center}
+</style>
+</head>
+<body class="bg-[#09090b] text-zinc-100 min-h-screen flex flex-col">
+
+<header class="sticky top-0 z-50 glass border-b border-zinc-800/80 px-5 py-3 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-900/40">
+      <i class="fa-solid fa-shirt text-white text-sm"></i>
+    </div>
+    <div>
+      <h1 class="text-[14px] font-semibold tracking-tight">Fashion Lookbook Studio</h1>
+      <p class="text-[10px] text-zinc-500 uppercase tracking-wide">Multi-Layout Catalog Maker · <span id="autosave-status" class="text-emerald-400">Browser save ready</span></p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap justify-end">
+    <button onclick="openCloudSync()" title="Connect free cloud sync to use this lookbook on phone and PC" class="bg-sky-700 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-cloud"></i> Cloud Sync</button>
+    <button onclick="openBulk()" class="bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-images"></i> Bulk Add</button>
+    <button onclick="importPPTX()" title="Import slides and extract garment photos and specifications from a PowerPoint file" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-600 flex items-center gap-1.5"><i class="fa-solid fa-file-import"></i> Import PPTX</button>
+    <button onclick="importCSV()" title="Import specs from a CSV file (updates matching Style No, adds new looks)" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-800 flex items-center gap-1.5"><i class="fa-solid fa-file-csv"></i> Import CSV</button>
+    <button onclick="csvTemplate()" title="Download an example CSV" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-800 flex items-center gap-1.5"><i class="fa-solid fa-download"></i> CSV Template</button>
+    <div class="w-px h-5 bg-zinc-800 mx-0.5"></div>
+    <button onclick="saveProject()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-800 flex items-center gap-1.5"><i class="fa-solid fa-floppy-disk"></i> Save Project</button>
+    <button onclick="loadProject()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-800 flex items-center gap-1.5"><i class="fa-solid fa-folder-open"></i> Open Project</button>
+    <div class="w-px h-5 bg-zinc-800 mx-0.5"></div>
+    <button onclick="exportPPTXExact()" title="Identical to the preview (slides are images)" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-file-powerpoint"></i> PPTX</button>
+    <button onclick="exportPPTX()" title="Editable text, simplified design" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-pen"></i> PPTX Editable</button>
+    <button onclick="exportPDF()" class="bg-rose-700 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+  </div>
+</header>
+
+<main class="flex-1 max-w-[1700px] w-full mx-auto p-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
+
+<!-- LEFT -->
+<div class="xl:col-span-4 space-y-3.5">
+
+  <div class="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3.5">
+    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2.5">Brand</h3>
+    <div class="grid grid-cols-2 gap-2.5">
+      <div>
+        <label class="text-[9px] text-zinc-500 mb-0.5 block">Company Name</label>
+        <input id="brand-company" type="text" value="ATELIER NOIR" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500" oninput="renderApp()">
+      </div>
+      <div>
+        <label class="text-[9px] text-zinc-500 mb-0.5 block">Collection</label>
+        <input id="brand-collection" type="text" value="AW 2027" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500" oninput="renderApp()">
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3.5">
+    <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-zinc-800">
+      <h2 class="text-sm font-semibold flex items-center gap-2"><i class="fa-solid fa-plus-circle text-violet-400"></i><span id="form-title">New Look</span></h2>
+      <button id="cancel-edit-btn" onclick="resetForm()" class="hidden text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-2 py-0.5 rounded-md">Cancel</button>
+    </div>
+
+    <!-- Upload - NO BG removal -->
+    <div class="mb-3.5">
+      <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1.5 block">Photos (Front & Back)</label>
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <button type="button" onclick="openCamera('front')" class="rounded-lg bg-violet-700 hover:bg-violet-600 text-white px-2 py-2.5 text-[11px] font-semibold"><i class="fa-solid fa-camera mr-1.5"></i>Take Front Photo</button>
+        <button type="button" onclick="openCamera('back')" class="rounded-lg bg-sky-700 hover:bg-sky-600 text-white px-2 py-2.5 text-[11px] font-semibold"><i class="fa-solid fa-camera mr-1.5"></i>Take Back Photo</button>
+      </div>
+      <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleCameraPhoto(event)">
+      <div id="drop-zone" class="border border-dashed border-zinc-700 hover:border-violet-500 rounded-xl p-3.5 text-center bg-zinc-950/50 cursor-pointer transition" onclick="document.getElementById('photo-input').click()">
+        <input type="file" id="photo-input" multiple accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+        <i class="fa-solid fa-cloud-arrow-up text-xl text-violet-400/80 mb-1"></i>
+        <p class="text-xs text-zinc-300 font-medium">Upload existing photos</p>
+        <p class="text-[9px] text-zinc-600">Upload order: first = Front · second = Back</p>
+      </div>
+      <p class="text-[9px] text-zinc-500 mt-1">Camera photos are resized for quick loading and fitted inside the slide image area without stretching or cutting off the garment.</p>
+      <div id="uploaded-previews" class="grid grid-cols-2 gap-2 mt-2"></div>
+    </div>
+
+    <!-- Fields with toggles -->
+    <div class="space-y-2">
+      <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Product Fields <span class="text-zinc-600 normal-case font-normal">(uncheck to hide)</span></label>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Style No</label><input type="checkbox" id="toggle-style" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-style" type="text" value="AN-AW27-014" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Fabric</label><input type="checkbox" id="toggle-fabric" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-fabric" type="text" value="Italian Wool Blend" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Composition</label><input type="checkbox" id="toggle-composition" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-composition" type="text" value="80% Wool / 20% Cashmere" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Weight</label><input type="checkbox" id="toggle-gsm" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-gsm" type="text" value="320 GSM" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Colorway</label><input type="checkbox" id="toggle-color" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-color" type="text" value="Charcoal Melange" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Season</label><input type="checkbox" id="toggle-season" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-season" type="text" value="AW 2027" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">MOQ</label><input type="checkbox" id="toggle-moq" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-moq" type="text" value="300 pcs" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-0.5"><label class="text-[10px] text-zinc-400">Size Run</label><input type="checkbox" id="toggle-size" checked class="accent-violet-500 w-3 h-3"></div>
+          <input id="input-size" type="text" value="XS – XL" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500">
+        </div>
+      </div>
+      <div>
+        <label class="text-[10px] text-zinc-400 block mb-0.5">Design Notes</label>
+        <textarea id="input-notes" rows="2" placeholder="Hand-finished, fully lined..." class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500 resize-none"></textarea>
+      </div>
+    </div>
+
+    <div class="mt-3 p-2.5 rounded-xl border border-zinc-800 space-y-2">
+      <label class="flex items-center gap-2 text-[11px] text-zinc-300"><input type="checkbox" id="opt-single" class="accent-violet-500" onchange="renderApp()"> Single image only (hide back view)</label>
+      <div class="flex items-center justify-between"><span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Detail zoom</span><button type="button" onclick="openDetailPicker()" class="px-2 py-1 rounded bg-sky-700 hover:bg-sky-600 text-white text-[10px]"><i class="fa-solid fa-magnifying-glass-plus"></i> Select area</button></div>
+      <div id="detail-preview"></div>
+      <div class="flex items-center gap-2"><label class="text-[10px] text-zinc-400">Detail position</label><select id="detail-pos" onchange="renderApp()" class="bg-zinc-950 border border-zinc-700 text-xs rounded-lg px-2 py-1"><option value="br">Bottom right</option><option value="bl">Bottom left</option><option value="tr">Top right</option><option value="tl">Top left</option></select><select id="detail-size" onchange="renderApp()" class="bg-zinc-950 border border-zinc-700 text-xs rounded-lg px-2 py-1"><option value="15">Small</option><option value="20" selected>Medium</option><option value="28">Large</option></select></div>
+    </div>
+    <button onclick="saveSlide()" id="save-slide-btn" class="w-full mt-3.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-950/40">
+      <i class="fa-solid fa-plus"></i> Add to Lookbook
+    </button>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="xl:col-span-8 flex flex-col gap-3.5">
+
+  <div class="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <div>
+        <label class="text-[9px] text-zinc-500 uppercase tracking-wider block mb-0.5">Layout Design</label>
+        <select id="layout-select" onchange="renderApp()" class="bg-zinc-950 border border-zinc-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-violet-500 min-w-[200px]"></select>
+      </div>
+      <div>
+        <label class="text-[9px] text-zinc-500 uppercase tracking-wider block mb-0.5">Color Theme</label>
+        <select id="theme-select" onchange="renderApp()" class="bg-zinc-950 border border-zinc-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-violet-500 min-w-[150px]"></select>
+      </div>
+      <div>
+        <label class="text-[9px] text-zinc-500 uppercase tracking-wider block mb-0.5">Aspect</label>
+        <select id="ratio-select" onchange="renderApp()" class="bg-zinc-950 border border-zinc-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none">
+          <option value="16:9">16:9</option>
+          <option value="4:3">4:3</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="slide-count-badge" class="text-[10px] bg-violet-950/60 text-violet-300 border border-violet-800/50 px-2.5 py-1 rounded-lg font-medium">0 Looks</span>
+      <button onclick="prevSlide()" class="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs"><i class="fa-solid fa-chevron-left"></i></button>
+      <button onclick="nextSlide()" class="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  </div>
+
+  <div class="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3.5 flex flex-col">
+    <div class="flex items-center justify-between mb-2.5">
+      <h3 class="text-xs font-medium text-zinc-400 flex items-center gap-2">
+        <i class="fa-solid fa-eye text-violet-400"></i>
+        Preview — Look <span id="preview-current-num">0</span> / <span id="preview-total-num">0</span>
+      </h3>
+      <span id="layout-name-display" class="text-[10px] text-zinc-500"></span>
+    </div>
+    <div id="slide-canvas-container" style="max-width:960px;margin:0 auto" class="w-full aspect-video rounded-xl border border-zinc-700/80 premium-shadow relative overflow-hidden transition-all"></div>
+  </div>
+
+  <div class="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-3">
+    <div class="flex items-center justify-between mb-2">
+      <h4 class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Lookbook Sequence</h4>
+      <button onclick="clearAllSlides()" class="text-[10px] text-rose-400/80 hover:text-rose-300">Clear All</button>
+    </div>
+    <div id="slide-sequence-list" class="space-y-1.5 max-h-40 overflow-y-auto scrollbar-thin pr-1">
+      <p class="text-[11px] text-zinc-600 text-center py-4">No looks yet.</p>
+    </div>
+  </div>
+</div>
+</main>
+
+<div id="bulk-modal" class="hidden fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div class="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+  <div class="p-4 border-b border-zinc-800 flex items-center justify-between"><h3 class="text-sm font-semibold"><i class="fa-solid fa-images text-violet-400"></i> Bulk Add Looks</h3><button type="button" onclick="closeBulk()" class="text-zinc-400 hover:text-white text-lg leading-none">&times;</button></div>
+  <div class="p-4 space-y-3 overflow-y-auto">
+    <div class="flex flex-wrap gap-3 items-end">
+      <button type="button" onclick="document.getElementById('bulk-input').click()" class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"><i class="fa-solid fa-cloud-arrow-up"></i> Choose images</button>
+      <input type="file" id="bulk-input" multiple accept="image/*" class="hidden" onchange="bulkLoad(event)">
+      <button type="button" onclick="bulkItems=[];bulkBuild()" class="px-3 py-1.5 rounded-lg bg-zinc-800 text-xs">Clear</button>
+      <div><label class="text-[9px] text-zinc-500 block mb-0.5">Pairing</label><select id="bulk-mode" onchange="bulkBuild()" class="bg-zinc-950 border border-zinc-700 text-xs rounded-lg px-2 py-1.5"><option value="auto">Auto: file names, else every 2 images</option><option value="pairs">Pairs: 1st = front, 2nd = back</option><option value="front">Front only: 1 image = 1 look</option></select></div>
+      <label class="flex items-center gap-1.5 text-[11px] text-zinc-300"><input type="checkbox" id="bulk-name" checked onchange="bulkBuild()" class="accent-violet-500"> Use file name as Style No</label>
+    </div>
+    <p class="text-[10px] text-zinc-500">Fabric, composition, season, MOQ etc. are copied from the form on the left. Name files like <b>AN-014_front.jpg</b> and <b>AN-014_back.jpg</b> (or -f / -b, _1 / _2) to pair them automatically. Use <b>swap</b> if a pair is the wrong way round.</p>
+    <div id="bulk-list" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+  </div>
+  <div class="p-4 border-t border-zinc-800 flex justify-between items-center"><span id="bulk-count" class="text-xs text-zinc-400"></span><button type="button" onclick="bulkCreate()" class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold">Create looks</button></div>
+</div></div>
+<div id="detail-modal" class="hidden fixed inset-0 z-[100] bg-black/85 flex flex-col items-center justify-center p-4">
+  <div class="text-xs text-zinc-300 mb-2 flex gap-2 items-center">Drag on the photo to select the detail area
+    <button type="button" onclick="dmSide('front')" class="px-2 py-0.5 rounded bg-zinc-700">Front</button><button type="button" onclick="dmSide('back')" class="px-2 py-0.5 rounded bg-zinc-700">Back</button></div>
+  <div id="dm-wrap" class="relative inline-block select-none" style="touch-action:none;line-height:0;cursor:crosshair"><img id="dm-img" draggable="false" style="max-width:88vw;max-height:74vh;display:block"><div id="dm-rect" class="absolute hidden pointer-events-none" style="border:2px solid #a78bfa;background:rgba(167,139,250,.22)"></div></div>
+  <div class="mt-3 flex gap-2"><button type="button" onclick="applyDetail()" class="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold">Use selection</button><button type="button" onclick="closeDetail()" class="px-4 py-1.5 rounded-lg bg-zinc-700 text-xs">Cancel</button></div>
+</div>
+<div id="pdf-export-container" class="hidden"></div>
+
+<!-- FREE CLOUD SYNC SETUP -->
+<div id="cloud-sync-modal" class="hidden fixed inset-0 z-[100] bg-black/80 p-4 overflow-y-auto">
+ <div class="max-w-xl mx-auto my-6 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
+  <div class="p-4 border-b border-zinc-800 flex items-center justify-between"><div><h2 class="font-semibold text-sm"><i class="fa-solid fa-cloud text-sky-400 mr-2"></i>Free cloud sync setup</h2><p class="text-xs text-zinc-400 mt-1">One project shared between your phone and PC</p></div><button onclick="closeCloudSync()" class="text-zinc-400 text-xl">&times;</button></div>
+  <div class="p-4 space-y-3 text-xs text-zinc-300">
+   <p class="leading-relaxed">This app can sync through a free Firebase Realtime Database. First create a Firebase project, enable Email/Password sign-in and Realtime Database, then paste your web-app settings below. The same email and password must be used on both devices.</p>
+   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <label>API Key<input id="cloud-api-key" class="mt-1 w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2" placeholder="AIza…"></label>
+    <label>Project ID<input id="cloud-project-id" class="mt-1 w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2" placeholder="my-lookbook-project"></label>
+    <label>Auth Domain<input id="cloud-auth-domain" class="mt-1 w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2" placeholder="project-id.firebaseapp.com"></label>
+    <label>Database URL<input id="cloud-database-url" class="mt-1 w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2" placeholder="https://…firebasedatabase.app"></label>
+    <label>Email for both devices<input id="cloud-email" type="email" autocomplete="username" class="mt-1 w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2" placeholder="you@example.com"></label>
+    <label>Password<input id="cloud-password" type="password" autocomplete="current-password" class="mt-1 w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2" placeholder="Firebase account password"></label>
+   </div>
+   <div id="cloud-status" class="rounded-lg bg-zinc-950 border border-zinc-800 p-3 text-zinc-400">Not connected. Your project is still saved locally on this device.</div>
+   <div class="flex flex-wrap gap-2">
+    <button onclick="saveCloudSettings()" class="px-3 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600">Save settings</button>
+    <button onclick="cloudCreateAccount()" class="px-3 py-2 rounded-lg bg-sky-700 hover:bg-sky-600">Create account</button>
+    <button onclick="cloudConnect()" class="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600">Connect & sync</button>
+    <button onclick="cloudDownload()" class="px-3 py-2 rounded-lg bg-violet-700 hover:bg-violet-600">Load cloud project</button>
+    <button onclick="cloudUpload()" class="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600">Save to cloud</button>
+   </div>
+   <details class="border-t border-zinc-800 pt-3"><summary class="cursor-pointer text-zinc-200 font-semibold">Firebase setup steps</summary>
+    <ol class="list-decimal pl-5 mt-2 space-y-2 leading-relaxed">
+     <li>Go to <b>console.firebase.google.com</b> and create a project (free Spark plan).</li>
+     <li>Open <b>Build → Authentication → Get started → Sign-in method</b>, enable <b>Email/Password</b>.</li>
+     <li>Open <b>Build → Realtime Database → Create Database</b>. Copy its Database URL.</li>
+     <li>In Project settings, add a Web app and copy its API key, Project ID and Auth domain.</li>
+     <li>In Realtime Database → Rules, use the secure rules shown below and click Publish.</li>
+     <li>Fill the fields above, click Save settings, then Create account. Use the same email/password on your phone and PC.</li>
+    </ol>
+    <pre class="whitespace-pre-wrap break-all bg-black rounded-lg p-3 mt-2 text-[10px] text-emerald-300">{\n  "rules": {\n    "users": {\n      "$uid": {\n        ".read": "auth != null && auth.uid === $uid",\n        ".write": "auth != null && auth.uid === $uid"\n      }\n    }\n  }\n}</pre>
+    <p class="mt-2 text-amber-300">Keep the database rules private to each signed-in account. Do not publish rules that allow anyone to read or write all data.</p>
+   </details>
+  </div>
+ </div>
+</div>
+
+
+<script>
+// ========== STATE ==========
+let activeDetail=null,dmSideKey='front',dmSel=null;
+let slides=[], currentSlideIndex=0, activeUploads={front:null,back:null}, editingIndex=null;
+
+// ========== COLOR THEMES (independent of layout) ==========
+const themes = {
+  light_clean:   {name:"Light Clean",   bg:"#fafafa", card:"#ffffff", text:"#111111", accent:"#111111", muted:"#737373", border:"#e5e5e5", isDark:false},
+  soft_cream:    {name:"Soft Cream",    bg:"#f7f3eb", card:"#fffcf7", text:"#2c2416", accent:"#8b6914", muted:"#8a7a5e", border:"#e8e0d0", isDark:false},
+  pure_white:    {name:"Pure White",    bg:"#ffffff", card:"#ffffff", text:"#0a0a0a", accent:"#0a0a0a", muted:"#525252", border:"#e5e5e5", isDark:false},
+  blush:         {name:"Blush",         bg:"#fdf6f8", card:"#ffffff", text:"#4a1d2e", accent:"#be185d", muted:"#9d174d", border:"#fbcfe8", isDark:false},
+  arctic:        {name:"Arctic",        bg:"#f0f9ff", card:"#ffffff", text:"#0c4a6e", accent:"#0284c7", muted:"#0369a1", border:"#bae6fd", isDark:false},
+  slate:         {name:"Slate Pro",     bg:"#f1f5f9", card:"#ffffff", text:"#0f172a", accent:"#1e40af", muted:"#475569", border:"#cbd5e1", isDark:false},
+  dark_noir:     {name:"Dark Noir",     bg:"#0a0a0a", card:"#141414", text:"#f5f5f5", accent:"#c9a227", muted:"#8a8a8a", border:"#2a2a2a", isDark:true},
+  midnight:      {name:"Midnight",      bg:"#020617", card:"#0f172a", text:"#f1f5f9", accent:"#38bdf8", muted:"#64748b", border:"#1e293b", isDark:true},
+  charcoal:      {name:"Charcoal",      bg:"#18181b", card:"#27272a", text:"#fafafa", accent:"#a1a1aa", muted:"#71717a", border:"#3f3f46", isDark:true},
+  burgundy:      {name:"Burgundy",      bg:"#1a0a0c", card:"#2a1215", text:"#fef2f2", accent:"#e11d48", muted:"#9f1239", border:"#4c1d24", isDark:true},
+  forest:        {name:"Forest",        bg:"#0a1410", card:"#12201a", text:"#ecfdf5", accent:"#34d399", muted:"#059669", border:"#1a3328", isDark:true},
+  luxe_gold:     {name:"Luxe Gold",     bg:"#0c0a09", card:"#1c1917", text:"#fafaf9", accent:"#d97706", muted:"#a8a29e", border:"#292524", isDark:true}
+};
+
+// ========== LAYOUTS (structure only — colors come from theme) ==========
+// imageMode: "dual" = 2 boxes, "single" = 1 combined box, "hero" = large single + small, "stack" etc.
+const layouts = {
+  classic_dual:      {name:"01 · Classic Dual",      imageMode:"dual",     desc:"Two equal image boxes · Specs right"},
+  single_stage:      {name:"02 · Single Stage",      imageMode:"single",   desc:"One combined image stage · Specs right"},
+  editorial_bleed:   {name:"03 · Editorial Bleed",   imageMode:"dual",     desc:"Full-bleed dual images · Bottom bar"},
+  magazine_hero:     {name:"04 · Magazine Hero",     imageMode:"hero",     desc:"Large front · Small back + specs"},
+  centered_dual:     {name:"05 · Centered Dual",     imageMode:"dual",     desc:"Centered dual images · Specs below"},
+  centered_single:   {name:"06 · Centered Single",   imageMode:"single",   desc:"One centered image stage · Specs below"},
+  specs_left_dual:   {name:"07 · Specs Left Dual",   imageMode:"dual",     desc:"Specs left · Dual images right"},
+  specs_left_single: {name:"08 · Specs Left Single", imageMode:"single",   desc:"Specs left · One image stage right"},
+  dual_panel:        {name:"09 · Dual Panel",        imageMode:"dual",     desc:"50/50 vertical split panels"},
+  float_cards:       {name:"10 · Float Cards",       imageMode:"dual",     desc:"Floating dual cards"},
+  runway_bar:        {name:"11 · Runway Bar",        imageMode:"dual",     desc:"Side brand bar · Dual images"},
+  luxury_frame:      {name:"12 · Luxury Frame",      imageMode:"single",   desc:"Framed single stage · Elegant header"},
+  vertical_stack:    {name:"13 · Vertical Stack",    imageMode:"dual",     desc:"Dual images top · Specs full bottom"},
+  modern_accent:     {name:"14 · Modern Accent",     imageMode:"dual",     desc:"Accent bar · Dual + specs"},
+  catalog_compact:   {name:"15 · Catalog Compact",   imageMode:"dual",     desc:"Compact 3-column catalog"},
+  bold_type:         {name:"16 · Bold Typography",   imageMode:"dual",     desc:"Large type left · Dual images right"},
+  single_focus:      {name:"17 · Single Focus",      imageMode:"single",   desc:"One large image area · Minimal specs"},
+  lookbook_row:      {name:"18 · Lookbook Row",      imageMode:"dual",     desc:"Horizontal image row · Specs side"},
+  denim_spec_sheet:  {name:"19 · Denim Spec Sheet",   imageMode:"dual",     desc:"Technical buyer sheet · Clean denim styling"},
+  editorial_split:   {name:"20 · Editorial Split",    imageMode:"hero",     desc:"Magazine-style split · Hero front view"},
+  product_focus:     {name:"21 · Product Focus",      imageMode:"single",   desc:"Large product stage · Compact detail strip"},
+  atelier_minimal:   {name:"22 · Atelier Minimal",    imageMode:"dual",     desc:"Minimal luxury layout · Fine rules and whitespace"},
+  buyer_review:      {name:"23 · Buyer Review",       imageMode:"dual",     desc:"Buyer-friendly product overview · Specs and notes"},
+  technical_grid:    {name:"24 · Technical Grid",       imageMode:"dual",     desc:"Structured garment overview · Balanced grid"},
+  premium_catalog:   {name:"25 · Premium Catalog",       imageMode:"dual",     desc:"Premium retail catalog · Bold title and clean product stage"},
+  color_story:       {name:"26 · Color Story",            imageMode:"dual",     desc:"Fashion color story · Accent panels and concise specs"},
+  line_sheet:        {name:"27 · Buyer Line Sheet",       imageMode:"dual",     desc:"Buyer-ready line sheet · Structured product information"},
+  merchandising_board:{name:"28 · Merchandising Board",  imageMode:"dual",     desc:"Merchandising presentation · Product, specs and notes"},
+  wash_detail:       {name:"29 · Wash & Finish",          imageMode:"dual",     desc:"Denim wash presentation · Front/back and finish details"},
+  spec_sidebar:      {name:"30 · Specification Sidebar", imageMode:"dual",     desc:"Large imagery with compact technical sidebar"},
+  asymmetry_editorial:{name:"31 · Asymmetric Editorial", imageMode:"hero",     desc:"Contemporary editorial layout · Dynamic image balance"},
+  dark_editorial:    {name:"32 · Dark Editorial",         imageMode:"dual",     desc:"Dark luxury presentation · High contrast and restrained accents"},
+  retail_range:      {name:"33 · Retail Range Plan",      imageMode:"dual",     desc:"Retail range planning · Product visuals and key attributes"},
+  executive_summary: {name:"34 · Executive Summary",      imageMode:"dual",     desc:"Executive buyer overview · Clear hierarchy and essentials"},
+  swiss_grid:        {name:"35 · Swiss Grid",             imageMode:"dual",     desc:"Swiss-inspired grid · Precise alignment and typography"},
+  studio_contact:    {name:"36 · Studio Contact Sheet",   imageMode:"dual",     desc:"Studio contact sheet · Numbered views and information rail"},
+  color_block:{name:"37 · Color Block",imageMode:"dual",desc:"New · Color Block"},
+  polaroid:{name:"38 · Polaroid Pair",imageMode:"dual",desc:"New · Polaroid Pair"},
+  tech_cover:{name:"39 · Tech Pack Cover",imageMode:"dual",desc:"New · Tech Pack Cover"},
+  big_number:{name:"40 · Big Number",imageMode:"dual",desc:"New · Big Number"},
+  rail_right:{name:"41 · Brand Rail",imageMode:"dual",desc:"New · Brand Rail"},
+  caption_line:{name:"42 · Caption Line",imageMode:"dual",desc:"New · Caption Line"},
+  tile_grid:{name:"43 · Spec Tiles",imageMode:"dual",desc:"New · Spec Tiles"},
+  cover_hero:{name:"44 · Cover Hero",imageMode:"dual",desc:"New · Cover Hero"},
+  order_sheet:{name:"45 · Order Sheet",imageMode:"dual",desc:"New · Order Sheet"},
+  gallery_mat:{name:"46 · Gallery Mat",imageMode:"dual",desc:"New · Gallery Mat"},
+  ribbon:{name:"47 · Ribbon Header",imageMode:"dual",desc:"New · Ribbon Header"},
+  duo_tone:{name:"48 · Duo Tone",imageMode:"dual",desc:"New · Duo Tone"},
+  corner_table:{name:"49 · Corner Table",imageMode:"dual",desc:"Table top-left · Borderless images"},
+  corner_table_top:{name:"50 · Top Table Strip",imageMode:"dual",desc:"Spec table across top · Borderless images"}
+};
+
+function initSelects(){
+  document.getElementById('layout-select').innerHTML = Object.keys(layouts).map(k=>`<option value="${k}">${layouts[k].name}</option>`).join('');
+  document.getElementById('theme-select').innerHTML = Object.keys(themes).map(k=>`<option value="${k}">${themes[k].name}</option>`).join('');
+}
+
+// ========== AUTO-CROP (trim empty / near-white margins) ==========
+function autoCropImage(dataUrl, callback){
+  const img = new Image();
+  img.onload = ()=>{
+    let w = img.width, h = img.height;
+    const maxD = 1800;
+    if(w > maxD || h > maxD){
+      const s = maxD / Math.max(w,h);
+      w = Math.round(w*s); h = Math.round(h*s);
+    }
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    // Sample corner average to detect background-ish color
+    const corners = [[2,2],[w-3,2],[2,h-3],[w-3,h-3]];
+    let sr=0,sg=0,sb=0;
+    corners.forEach(([x,y])=>{ const i=(y*w+x)*4; sr+=data[i]; sg+=data[i+1]; sb+=data[i+2]; });
+    sr/=4; sg/=4; sb/=4;
+
+    const threshold = 28; // how close to corner color counts as "empty"
+    let minX=w, minY=h, maxX=0, maxY=0, found=false;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const i=(y*w+x)*4;
+        const dr=Math.abs(data[i]-sr), dg=Math.abs(data[i+1]-sg), db=Math.abs(data[i+2]-sb);
+        const alpha = data[i+3];
+        // treat near-bg OR transparent as empty
+        if(alpha > 20 && (dr+dg+db) > threshold){
+          found=true;
+          if(x<minX)minX=x; if(x>maxX)maxX=x;
+          if(y<minY)minY=y; if(y>maxY)maxY=y;
+        }
+      }
+    }
+
+    if(!found || maxX<=minX || maxY<=minY){
+      callback(dataUrl); // nothing to crop
+      return;
+    }
+
+    // padding so crop isn't too tight
+    const pad = Math.max(8, Math.round(Math.min(w,h)*0.02));
+    minX = Math.max(0, minX-pad);
+    minY = Math.max(0, minY-pad);
+    maxX = Math.min(w-1, maxX+pad);
+    maxY = Math.min(h-1, maxY+pad);
+
+    const cw = maxX-minX+1, ch = maxY-minY+1;
+    const out = document.createElement('canvas');
+    out.width = cw; out.height = ch;
+    out.getContext('2d').drawImage(canvas, minX, minY, cw, ch, 0, 0, cw, ch);
+    callback(out.toDataURL('image/png'));
+  };
+  img.onerror = ()=> callback(dataUrl);
+  img.src = dataUrl;
+}
+
+// ========== PHONE CAMERA + SLIDE-READY IMAGE PROCESSING ==========
+let cameraTargetSide='front';
+function openCamera(side){
+  cameraTargetSide=side;
+  const input=document.getElementById('camera-input');
+  input.value='';
+  // On supported phones this opens the rear camera. Desktop browsers may offer a file picker.
+  input.click();
+}
+function preparePhotoForSlide(file, callback){
+  const reader=new FileReader();
+  reader.onerror=()=>alert('Could not read this photo. Please try again.');
+  reader.onload=e=>{
+    const img=new Image();
+    img.onerror=()=>alert('This photo format could not be opened. Please try a JPG or PNG photo.');
+    img.onload=()=>{
+      // Preserve the complete garment and its proportions; the slide uses object-fit: contain.
+      const maxW=1800,maxH=2400,scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight);
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+      canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      callback(canvas.toDataURL('image/jpeg',0.88));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function handleCameraPhoto(ev){
+  const file=(ev.target.files||[])[0];
+  if(!file)return;
+  const side=cameraTargetSide;
+  preparePhotoForSlide(file,dataUrl=>{
+    activeUploads[side]=dataUrl;
+    renderUploadPreviews();
+  });
+  ev.target.value='';
+}
+
+// ========== IMAGE UPLOAD + AUTO CROP ==========
+function handleImageUpload(ev){
+  const files = Array.from(ev.target.files||[]).filter(f=>f.type.startsWith('image/'));
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      autoCropImage(e.target.result, (cropped)=>{
+        if(!activeUploads.front) activeUploads.front = cropped;
+        else if(!activeUploads.back) activeUploads.back = cropped;
+        else activeUploads.front = cropped;
+        renderUploadPreviews();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+  ev.target.value='';
+}
+
+const dz=document.getElementById('drop-zone');
+['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('drop-active')}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('drop-active')}));
+dz.addEventListener('drop',e=>{
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  if(files.length){const dt=new DataTransfer();files.forEach(f=>dt.items.add(f));document.getElementById('photo-input').files=dt.files;handleImageUpload({target:document.getElementById('photo-input')})}
+});
+
+function renderUploadPreviews(){
+  document.getElementById('uploaded-previews').innerHTML=['front','back'].map(side=>`
+    <div class="bg-zinc-950 border ${activeUploads[side]?'border-violet-500':'border-zinc-700'} rounded-lg p-1.5 text-center relative group">
+      <span class="text-[8px] uppercase font-bold text-violet-400/90 block mb-0.5">${side}</span>
+      ${activeUploads[side]
+        ? `<div class="h-20 flex items-center justify-center overflow-hidden"><img src="${activeUploads[side]}" class="max-h-full max-w-full object-contain rounded"></div>
+           <div class="flex items-center justify-center gap-1 mt-1 flex-wrap">
+             <button onclick="rotateUpload('${side}')" title="Rotate 90° clockwise" class="px-2 py-1 rounded bg-violet-700 hover:bg-violet-600 text-white text-[9px]"><i class="fa-solid fa-rotate-right"></i> Rotate</button>
+             <button onclick="setUploadSide('${side}','${side==='front'?'back':'front'}')" title="Use this photo as the ${side==='front'?'back':'front'} view" class="px-2 py-1 rounded bg-sky-700 hover:bg-sky-600 text-white text-[9px]"><i class="fa-solid fa-arrow-right-arrow-left"></i> Make ${side==='front'?'Back':'Front'}</button>
+           </div>`
+        : `<div class="h-20 flex items-center justify-center text-[10px] text-zinc-600">—</div>`}
+      ${activeUploads[side]?`<button onclick="clearUpload('${side}')" title="Remove image" class="absolute top-0.5 right-0.5 bg-rose-600 text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center">×</button>`:''}
+    </div>`).join('');
+}
+function setUploadSide(fromSide,toSide){
+  if(!activeUploads[fromSide]) return;
+  // Move the chosen photo to the requested role and preserve the other photo by swapping.
+  const chosen=activeUploads[fromSide];
+  activeUploads[fromSide]=activeUploads[toSide];
+  activeUploads[toSide]=chosen;
+  renderUploadPreviews();
+}
+function rotateUpload(side){
+  const src=activeUploads[side]; if(!src)return;
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=img.naturalHeight; canvas.height=img.naturalWidth;
+    const ctx=canvas.getContext('2d');
+    ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(Math.PI/2);
+    ctx.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2);
+    activeUploads[side]=canvas.toDataURL('image/png');
+    renderUploadPreviews(); renderApp();
+  };
+  img.onerror=()=>alert('Could not rotate this image. Please upload it again.');
+  img.src=src;
+}
+function clearUpload(s){activeUploads[s]=null;renderUploadPreviews()}
+
+// ========== BULK ADD ==========
+let bulkItems=[],bulkLooks=[];
+const readFileURL=f=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f)});
+const cropP=d=>new Promise(r=>autoCropImage(d,r));
+function openBulk(){document.getElementById('bulk-modal').classList.remove('hidden');bulkBuild()}
+function closeBulk(){document.getElementById('bulk-modal').classList.add('hidden')}
+async function bulkLoad(ev){
+  const fs=[...ev.target.files].filter(f=>f.type.startsWith('image/'));ev.target.value='';
+  for(let i=0;i<fs.length;i++){document.getElementById('bulk-count').textContent=`Processing ${i+1} / ${fs.length}...`;
+    bulkItems.push({name:fs[i].name,data:await cropP(await readFileURL(fs[i]))});}
+  bulkBuild();}
+function bulkDetect(name){
+  const nm=name.replace(/\.[^.]+$/,''),toks=nm.split(/[\s_\-.()]+/).filter(Boolean);let side=null;
+  for(let i=toks.length-1;i>=0;i--){const t=toks[i].toLowerCase();
+    if(/^(front|frnt|fr|f|1)$/.test(t))side='front';else if(/^(back|rear|bk|b|2)$/.test(t))side='back';else continue;
+    toks.splice(i,1);break;}
+  return {side,base:toks.join('-')||nm};}
+function bulkBuild(){
+  const mode=document.getElementById('bulk-mode').value;
+  const items=[...bulkItems].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(x=>({...x,...bulkDetect(x.name)}));
+  const looks=[],pairs=()=>{for(let i=0;i<items.length;i+=2)looks.push({base:items[i].base,front:items[i].data,back:items[i+1]?items[i+1].data:null})};
+  if(mode==='front')items.forEach(x=>looks.push({base:x.base,front:x.data,back:null}));
+  else if(mode==='pairs'||!items.some(x=>x.side))pairs();
+  else{const g=new Map();items.forEach(x=>{const k=x.base.toLowerCase();if(!g.has(k))g.set(k,[]);g.get(k).push(x)});
+    g.forEach(arr=>{const un=arr.filter(x=>!x.side);let f=arr.find(x=>x.side==='front')||un.shift()||null,b=arr.find(x=>x.side==='back')||un.shift()||null;
+      if(!f&&b){f=b;b=null}looks.push({base:arr[0].base,front:f.data,back:b?b.data:null});un.forEach(x=>looks.push({base:x.base,front:x.data,back:null}))});}
+  bulkLooks=looks;bulkRender(items.length);}
+function bulkRender(n){
+  document.getElementById('bulk-count').textContent=bulkLooks.length?`${bulkLooks.length} look(s) from ${n??bulkItems.length} image(s)`:'No images chosen yet';
+  document.getElementById('bulk-list').innerHTML=bulkLooks.map((l,i)=>`<div class="bg-zinc-950 border border-zinc-800 rounded-lg p-2"><div class="flex gap-1.5 h-24"><div class="flex-1 bg-zinc-900 rounded flex items-center justify-center overflow-hidden"><img src="${l.front}" class="max-h-full max-w-full object-contain"></div><div class="flex-1 bg-zinc-900 rounded flex items-center justify-center overflow-hidden text-[9px] text-zinc-600">${l.back?`<img src="${l.back}" class="max-h-full max-w-full object-contain">`:'single image'}</div></div>
+    <div class="flex items-center justify-between mt-1.5 text-[10px]"><span class="truncate text-zinc-300">${esc(l.base)}</span><span class="flex gap-1">${l.back?`<button type="button" onclick="bulkSwap(${i})" class="px-1.5 py-0.5 rounded bg-sky-800">swap</button>`:''}<button type="button" onclick="bulkLooks.splice(${i},1);bulkRender()" class="px-1.5 py-0.5 rounded bg-rose-900">remove</button></span></div></div>`).join('');}
+function bulkSwap(i){const l=bulkLooks[i];[l.front,l.back]=[l.back,l.front];bulkRender()}
+function bulkCreate(){
+  if(!bulkLooks.length){alert('Choose images first.');return}
+  const tpl=getFields(),notes=document.getElementById('input-notes').value.trim(),useName=document.getElementById('bulk-name').checked,start=slides.length;
+  bulkLooks.forEach((l,i)=>{const f=JSON.parse(JSON.stringify(tpl));
+    f.style.value=useName?l.base:`${tpl.style.value||'STYLE'}-${String(i+1).padStart(2,'0')}`;
+    slides.push({single:!l.back,detail:null,detailPos:'br',detailSize:20,front:l.front,back:l.back,fields:f,notes});});
+  currentSlideIndex=start;bulkItems=[];bulkLooks=[];closeBulk();renderApp();}
+// ========== CSV IMPORT ==========
+function parseCSV(t){const rows=[];let r=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;else if(ch===','){r.push(f);f=''}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(f);f='';if(r.some(x=>x.trim()))rows.push(r);r=[]}else f+=ch}
+  r.push(f);if(r.some(x=>x.trim()))rows.push(r);return rows}
+function importCSV(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.csv,text/csv';
+  inp.onchange=async()=>{const file=inp.files[0];if(!file)return;
+    const rows=parseCSV((await file.text()).replace(/^\uFEFF/,''));if(rows.length<2){alert('The CSV needs a header row and at least one data row.');return}
+    const map={style:/^style/,fabric:/^fabric/,composition:/^compos/,gsm:/^(weight|gsm)/,color:/^colou?r/,season:/^season/,moq:/^moq/,size:/^size/,notes:/^(note|design)/};
+    const col={};rows[0].forEach((h,i)=>{const k=Object.keys(map).find(k=>map[k].test(h.trim().toLowerCase()));if(k&&col[k]===undefined)col[k]=i});
+    if(col.style===undefined){alert('The CSV needs a "Style" column.');return}
+    let up=0,add=0;
+    rows.slice(1).forEach(r=>{const st=(r[col.style]||'').trim();if(!st)return;
+      let s=slides.find(x=>(x.fields.style?.value||'').trim().toLowerCase()===st.toLowerCase());
+      if(!s){s={single:true,detail:null,front:null,back:null,fields:getFields(),notes:''};Object.values(s.fields).forEach(f=>{f.value='';f.active=false});slides.push(s);add++}else up++;
+      Object.keys(col).forEach(k=>{const v=(r[col[k]]||'').trim();if(k==='notes'){if(v)s.notes=v}else if(v){s.fields[k].value=v;s.fields[k].active=true}});});
+    currentSlideIndex=Math.min(currentSlideIndex,Math.max(0,slides.length-1));renderApp();alert(`CSV imported: ${up} look(s) updated, ${add} new look(s) added (add photos with the pencil/edit button).`);};
+  inp.click();}
+function csvTemplate(){
+  const t='Style,Fabric,Composition,Weight,Colorway,Season,MOQ,Size Run,Notes\nAN-AW27-014,Italian Wool Blend,80% Wool / 20% Cashmere,320 GSM,Charcoal Melange,AW 2027,300 pcs,XS - XL,Hand-finished\n';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='lookbook_specs_template.csv';document.body.appendChild(a);a.click();a.remove();}
+// ========== POWERPOINT IMPORT ==========
+async function importPPTX(){
+  if(!window.JSZip){alert('PowerPoint import library did not load. Check your internet connection and reload the page.');return}
+  const inp=document.createElement('input');inp.type='file';inp.accept='.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  inp.onchange=async()=>{
+    const file=inp.files&&inp.files[0];if(!file)return;
+    try{
+      const zip=await JSZip.loadAsync(file);
+      const slideFiles=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n))
+        .sort((a,b)=>Number(a.match(/slide(\d+)/)[1])-Number(b.match(/slide(\d+)/)[1]));
+      if(!slideFiles.length)throw new Error('No slides were found. Please choose a valid .pptx file.');
+      const parser=new DOMParser(), imported=[];
+      const xmlText=async path=>zip.file(path)?await zip.file(path).async('text'):null;
+      for(const path of slideFiles){
+        const xml=parser.parseFromString(await zip.file(path).async('text'),'application/xml');
+        const texts=Array.from(xml.getElementsByTagNameNS('*','t')).map(n=>(n.textContent||'').trim()).filter(Boolean);
+        const joined=texts.join('\n');
+        const relPath=path.replace('ppt/slides/','ppt/slides/_rels/')+'.rels';
+        const relText=await xmlText(relPath), rels={};
+        if(relText){
+          const rx=parser.parseFromString(relText,'application/xml');
+          Array.from(rx.getElementsByTagNameNS('*','Relationship')).forEach(r=>{
+            const target=r.getAttribute('Target'),id=r.getAttribute('Id'),type=r.getAttribute('Type')||'';
+            if(id&&target&&type.includes('/image')){
+              const normalized=target.startsWith('/')?target.slice(1):('ppt/slides/'+target).replace(/\/\.\//g,'/');
+              rels[id]=normalized.split('/').reduce((a,part)=>{if(part==='..')a.pop();else if(part!=='.')a.push(part);return a},[]).join('/');
+            }
+          });
+        }
+        const imageIds=Array.from(xml.getElementsByTagNameNS('*','blip')).map(n=>n.getAttribute('r:embed')||n.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','embed')).filter(Boolean);
+        const images=[];
+        for(const id of imageIds){
+          const mediaPath=rels[id],entry=mediaPath&&zip.file(mediaPath);if(!entry)continue;
+          const blob=await entry.async('blob');
+          const data=await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob)});
+          if(!images.includes(data))images.push(data);
+        }
+        const fields=getFields();Object.values(fields).forEach(f=>{f.value='';f.active=false});
+        const patterns={style:/style\s*(?:no\.?|number|#)?\s*[:\-]?\s*(.+)/i,fabric:/fabric\s*[:\-]?\s*(.+)/i,composition:/(?:composition|content)\s*[:\-]?\s*(.+)/i,gsm:/(?:weight|gsm)\s*[:\-]?\s*(.+)/i,color:/(?:colorway|colourway|color|colour)\s*[:\-]?\s*(.+)/i,season:/season\s*[:\-]?\s*(.+)/i,moq:/moq\s*[:\-]?\s*(.+)/i,size:/(?:size run|sizes?)\s*[:\-]?\s*(.+)/i};
+        Object.entries(patterns).forEach(([key,re])=>{
+          const hit=joined.match(re);
+          if(hit){fields[key].value=hit[1].split(/\n/)[0].trim().slice(0,300);fields[key].active=!!fields[key].value}
+        });
+        if(!fields.style.value){
+          const likely=texts.find(t=>/^[A-Z0-9][A-Z0-9 _./-]{2,30}$/.test(t)&&!/(LOOKBOOK|COLLECTION|CONFIDENTIAL|FRONT|BACK|FABRIC|COMPOSITION|SEASON|COLORWAY)/i.test(t));
+          fields.style.value=likely||`PPTX-${String(imported.length+1).padStart(3,'0')}`;fields.style.active=true;
+        }
+        const notesMatch=joined.match(/(?:design notes?|notes?)\s*[:\-]?\s*([\s\S]+)/i);
+        imported.push({single:images.length<2,detail:null,detailPos:'br',detailSize:20,front:images[0]||null,back:images[1]||null,fields,notes:notesMatch?notesMatch[1].split('\n').slice(0,3).join(' ').trim().slice(0,500):''});
+      }
+      const replace=slides.length&&confirm(`Found ${imported.length} slide(s). Choose OK to replace the current lookbook, or Cancel to append them.`);
+      if(replace)slides=imported;else slides.push(...imported);
+      currentSlideIndex=Math.max(0,slides.length-imported.length);renderApp();
+      alert(`PowerPoint import complete: ${imported.length} slide(s) imported. Garment images and text specifications were extracted where available. Complex slide layouts and formatting are not preserved; review each look before exporting.`);
+    }catch(err){console.error(err);alert('Could not import this PowerPoint: '+(err.message||err))}
+  };
+  inp.click();
+}
+
+// ========== DETAIL ZOOM PICKER ==========
+function openDetailPicker(){if(!activeUploads.front&&!activeUploads.back){alert('Upload a photo first.');return}
+  dmSideKey=activeUploads.front?'front':'back';dmShow();document.getElementById('detail-modal').classList.remove('hidden')}
+function closeDetail(){document.getElementById('detail-modal').classList.add('hidden')}
+function dmSide(k){if(activeUploads[k]){dmSideKey=k;dmShow()}}
+function dmShow(){dmSel=null;document.getElementById('dm-img').src=activeUploads[dmSideKey];document.getElementById('dm-rect').classList.add('hidden')}
+function dmDraw(){const r=document.getElementById('dm-rect'),i=document.getElementById('dm-img');
+  if(!dmSel||dmSel.w<0.005){r.classList.add('hidden');return}
+  r.classList.remove('hidden');Object.assign(r.style,{left:dmSel.x*i.clientWidth+'px',top:dmSel.y*i.clientHeight+'px',width:dmSel.w*i.clientWidth+'px',height:dmSel.h*i.clientHeight+'px'})}
+(function(){const w=document.getElementById('dm-wrap');let st=null;
+  const pt=e=>{const r=document.getElementById('dm-img').getBoundingClientRect();return{x:Math.min(Math.max((e.clientX-r.left)/r.width,0),1),y:Math.min(Math.max((e.clientY-r.top)/r.height,0),1)}};
+  w.addEventListener('pointerdown',e=>{st=pt(e);w.setPointerCapture(e.pointerId);dmSel={x:st.x,y:st.y,w:0,h:0};dmDraw()});
+  w.addEventListener('pointermove',e=>{if(!st)return;const p=pt(e);dmSel={x:Math.min(st.x,p.x),y:Math.min(st.y,p.y),w:Math.abs(p.x-st.x),h:Math.abs(p.y-st.y)};dmDraw()});
+  w.addEventListener('pointerup',()=>{st=null});})();
+function applyDetail(){
+  if(!dmSel||dmSel.w<0.02||dmSel.h<0.02){alert('Drag a rectangle on the photo first.');return}
+  const img=new Image();img.onload=()=>{
+    const sx=dmSel.x*img.naturalWidth,sy=dmSel.y*img.naturalHeight,sw=dmSel.w*img.naturalWidth,sh=dmSel.h*img.naturalHeight;
+    const k=Math.min(1,1000/Math.max(sw,sh));const cv=document.createElement('canvas');cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);
+    cv.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
+    activeDetail=cv.toDataURL('image/png');renderDetailPreview();closeDetail();renderApp();};
+  img.src=activeUploads[dmSideKey];}
+function renderDetailPreview(){const el=document.getElementById('detail-preview');if(!el)return;
+  el.innerHTML=activeDetail?`<div class="relative h-16 flex items-center justify-center bg-zinc-950 border border-sky-600 rounded-lg"><img src="${activeDetail}" class="max-h-full max-w-full object-contain"><button type="button" onclick="activeDetail=null;renderDetailPreview();renderApp()" class="absolute top-0.5 right-0.5 bg-rose-600 text-white rounded-full w-4 h-4 text-[9px]">×</button></div>`:'<p class="text-[10px] text-zinc-600">No detail selected</p>'}
+// ========== SLIDE CRUD ==========
+function getFields(){
+  return {
+    style:{label:"STYLE",value:document.getElementById('input-style').value,active:document.getElementById('toggle-style').checked},
+    fabric:{label:"FABRIC",value:document.getElementById('input-fabric').value,active:document.getElementById('toggle-fabric').checked},
+    composition:{label:"COMPOSITION",value:document.getElementById('input-composition').value,active:document.getElementById('toggle-composition').checked},
+    gsm:{label:"WEIGHT",value:document.getElementById('input-gsm').value,active:document.getElementById('toggle-gsm').checked},
+    color:{label:"COLORWAY",value:document.getElementById('input-color').value,active:document.getElementById('toggle-color').checked},
+    season:{label:"SEASON",value:document.getElementById('input-season').value,active:document.getElementById('toggle-season').checked},
+    moq:{label:"MOQ",value:document.getElementById('input-moq').value,active:document.getElementById('toggle-moq').checked},
+    size:{label:"SIZE RUN",value:document.getElementById('input-size').value,active:document.getElementById('toggle-size').checked}
+  };
+}
+function activeFields(s){return Object.values(s.fields||{}).filter(f=>f&&f.active!==false&&f.value)}
+
+function saveSlide(){
+  const data={single:document.getElementById('opt-single').checked,detail:activeDetail,detailPos:document.getElementById('detail-pos').value,detailSize:+document.getElementById('detail-size').value,front:activeUploads.front,back:activeUploads.back,fields:getFields(),notes:document.getElementById('input-notes').value.trim()};
+  if(editingIndex!==null){
+    slides[editingIndex]=data;editingIndex=null;
+    document.getElementById('form-title').textContent='New Look';
+    document.getElementById('save-slide-btn').innerHTML='<i class="fa-solid fa-plus"></i> Add to Lookbook';
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+  } else {slides.push(data);currentSlideIndex=slides.length-1}
+  activeUploads={front:null,back:null};activeDetail=null;renderDetailPreview();renderUploadPreviews();renderApp();
+}
+function editSlide(i){
+  const s=slides[i];editingIndex=i;
+  activeUploads.front=s.front;activeUploads.back=s.back;activeDetail=s.detail||null;document.getElementById('opt-single').checked=!!s.single;document.getElementById('detail-pos').value=s.detailPos||'br';document.getElementById('detail-size').value=s.detailSize||20;renderDetailPreview();
+  ['style','fabric','composition','gsm','color','season','moq','size'].forEach(k=>{
+    document.getElementById('input-'+k).value=s.fields[k]?.value||'';
+    document.getElementById('toggle-'+k).checked=s.fields[k]?.active!==false;
+  });
+  document.getElementById('input-notes').value=s.notes||'';
+  document.getElementById('form-title').textContent=`Edit Look ${i+1}`;
+  document.getElementById('save-slide-btn').innerHTML='<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+  document.getElementById('cancel-edit-btn').classList.remove('hidden');
+  renderUploadPreviews();
+}
+function resetForm(){
+  editingIndex=null;activeUploads={front:null,back:null};activeDetail=null;renderDetailPreview();
+  document.getElementById('form-title').textContent='New Look';
+  document.getElementById('save-slide-btn').innerHTML='<i class="fa-solid fa-plus"></i> Add to Lookbook';
+  document.getElementById('cancel-edit-btn').classList.add('hidden');
+  renderUploadPreviews();
+}
+function deleteSlide(i){if(!confirm('Remove?'))return;slides.splice(i,1);if(currentSlideIndex>=slides.length)currentSlideIndex=Math.max(0,slides.length-1);renderApp()}
+function moveSlide(i,d){const t=i+d;if(t<0||t>=slides.length)return;[slides[i],slides[t]]=[slides[t],slides[i]];currentSlideIndex=t;renderApp()}
+function clearAllSlides(){if(!slides.length||!confirm('Clear all?'))return;slides=[];currentSlideIndex=0;renderApp()}
+function prevSlide(){if(!slides.length)return;currentSlideIndex=(currentSlideIndex-1+slides.length)%slides.length;renderApp()}
+function nextSlide(){if(!slides.length)return;currentSlideIndex=(currentSlideIndex+1)%slides.length;renderApp()}
+
+// ========== IMAGE HELPERS (aligned + contained) ==========
+function _dualBoxes(front,back,c){
+  const bg = c.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+  return `<div class="grid grid-cols-2 gap-2.5 h-full min-h-0" style="align-items:stretch">
+    <div class="img-box rounded-lg h-full w-full" style="background:${bg};border:1px solid ${c.border}">
+      <span class="absolute top-1.5 left-2 text-[9px] font-semibold tracking-[0.15em] uppercase z-10" style="color:${c.muted}">Front</span>
+      ${front?`<img src="${front}" alt="Front">`:`<span class="text-[10px]" style="color:${c.muted}">—</span>`}
+    </div>
+    <div class="img-box rounded-lg h-full w-full" style="background:${bg};border:1px solid ${c.border}">
+      <span class="absolute top-1.5 left-2 text-[9px] font-semibold tracking-[0.15em] uppercase z-10" style="color:${c.muted}">Back</span>
+      ${back?`<img src="${back}" alt="Back">`:`<span class="text-[10px]" style="color:${c.muted}">—</span>`}
+    </div>
+  </div>`;
+}
+
+function _singleBox(front,back,c){
+  const bg = c.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+  return `<div class="img-box rounded-lg h-full w-full gap-4 px-4" style="background:${bg};border:1px solid ${c.border}">
+    <span class="absolute top-1.5 left-2 text-[9px] font-semibold tracking-[0.15em] uppercase z-10" style="color:${c.muted}">Front & Back</span>
+    ${front?`<img src="${front}" alt="Front" style="max-width:45%;max-height:90%">`:`<span class="text-[10px]" style="color:${c.muted}">Front</span>`}
+    ${back?`<img src="${back}" alt="Back" style="max-width:45%;max-height:90%">`:`<span class="text-[10px]" style="color:${c.muted}">Back</span>`}
+  </div>`;
+}
+
+function _heroBoxes(front,back,c){
+  const bg = c.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+  return `<div class="grid grid-cols-12 gap-2.5 h-full min-h-0" style="align-items:stretch">
+    <div class="col-span-8 img-box rounded-lg h-full w-full" style="background:${bg};border:1px solid ${c.border}">
+      <span class="absolute top-1.5 left-2 text-[9px] font-semibold tracking-[0.15em] uppercase z-10" style="color:${c.muted}">Front</span>
+      ${front?`<img src="${front}" alt="Front">`:`<span class="text-[10px]" style="color:${c.muted}">—</span>`}
+    </div>
+    <div class="col-span-4 img-box rounded-lg h-full w-full" style="background:${bg};border:1px solid ${c.border}">
+      <span class="absolute top-1.5 left-2 text-[9px] font-semibold tracking-[0.15em] uppercase z-10" style="color:${c.muted}">Back</span>
+      ${back?`<img src="${back}" alt="Back">`:`<span class="text-[10px]" style="color:${c.muted}">—</span>`}
+    </div>
+  </div>`;
+}
+
+function oneBox(src,label,c){const bg=c.isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';
+  return `<div class="img-box rounded-lg h-full w-full" style="background:${bg};border:1px solid ${c.border}"><span class="absolute top-1.5 left-2 text-[9px] font-semibold tracking-[0.15em] uppercase z-10" style="color:${c.muted}">${label}</span>${src?`<img src="${src}" alt="${label}">`:''}</div>`}
+const _one=(f,b)=>(f&&!b)||(!f&&b);
+function dualBoxes(f,b,c){return _one(f,b)?oneBox(f||b,f?'Front':'Back',c):_dualBoxes(f,b,c)}
+function singleBox(f,b,c){return _one(f,b)?oneBox(f||b,f?'Front':'Back',c):_singleBox(f,b,c)}
+function heroBoxes(f,b,c){return _one(f,b)?oneBox(f||b,f?'Front':'Back',c):_heroBoxes(f,b,c)}
+function imageArea(mode,front,back,c){
+  if(mode==='single') return singleBox(front,back,c);
+  if(mode==='hero') return heroBoxes(front,back,c);
+  return dualBoxes(front,back,c);
+}
+
+function specsBlock(fields,notes,c,compact){
+  const py=compact?'py-1.5':'py-2';
+  return `<div class="rounded-lg overflow-hidden" style="border:1px solid ${c.border};background:${c.card}">
+    <div class="px-3 ${compact?'py-1.5':'py-2'}" style="border-bottom:1px solid ${c.border};background:${c.isDark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)'}">
+      <span class="text-[10px] font-semibold tracking-[0.2em] uppercase" style="color:${c.accent}">Specifications</span>
+    </div>
+    ${fields.map((f,i)=>`<div class="flex justify-between items-baseline px-3 ${py} ${i<fields.length-1?'border-b':''}" style="border-color:${c.border}">
+      <span class="text-[11px] font-medium tracking-wide uppercase" style="color:${c.muted}">${f.label}</span>
+      <span class="text-[11px] font-medium text-right max-w-[58%] truncate" style="color:${c.text}">${f.value}</span>
+    </div>`).join('')||`<div class="px-3 py-4 text-center text-[10px]" style="color:${c.muted}">—</div>`}
+  </div>
+  ${notes?`<div class="mt-2 px-3 py-2 rounded-lg" style="border:1px solid ${c.border};background:${c.card}">
+    <span class="text-[10px] font-semibold tracking-[0.15em] uppercase block mb-0.5" style="color:${c.accent}">Notes</span>
+    <p class="text-[10px] leading-relaxed" style="color:${c.muted}">${notes}</p>
+  </div>`:''}`;
+}
+
+function headerBar(company,collection,lookNum,c){
+  return `<div class="flex items-center justify-between px-5 pt-3.5 pb-2.5 flex-shrink-0" style="border-bottom:1px solid ${c.border};background:${c.bg}">
+    <div>
+      <div class="text-[11px] font-semibold tracking-[0.2em] uppercase" style="color:${c.accent}">${company}</div>
+      <div class="text-[10px] tracking-[0.12em] uppercase mt-0.5" style="color:${c.muted}">${collection}</div>
+    </div>
+    <div class="text-[11px] tracking-widest uppercase" style="color:${c.muted}">Look ${String(lookNum).padStart(2,'0')}</div>
+  </div>`;
+}
+function footerBar(lookNum,total,c){
+  return `<div class="flex items-center justify-between px-5 py-2 flex-shrink-0" style="border-top:1px solid ${c.border};background:${c.bg}">
+    <span class="text-[10px]" style="color:${c.muted}">Confidential · Professional use only</span>
+    <span class="text-[10px]" style="color:${c.muted}">${lookNum} / ${total}</span>
+  </div>`;
+}
+
+// ========== LAYOUT BUILDERS ==========
+function _buildLayout(key,s,c,company,collection,idx,total){
+  const fields=activeFields(s);
+  const mode=layouts[key].imageMode;
+  const imgs=imageArea(mode,s.front,s.back,c);
+
+  switch(key){
+    case 'classic_dual':
+    case 'single_stage':
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-3 px-4 py-3 min-h-0" style="background:${c.bg}">
+          <div class="col-span-7 min-h-0">${imgs}</div>
+          <div class="col-span-5 flex flex-col justify-center">${specsBlock(fields,s.notes,c)}</div>
+        </div>${footerBar(idx+1,total,c)}`;
+
+    case 'editorial_bleed':
+      return `<div class="flex-1 flex flex-col min-h-0" style="background:${c.bg}">
+        <div class="flex-1 min-h-0">${imageArea('dual',s.front,s.back,c)}</div>
+        <div class="px-5 py-3 flex items-center justify-between flex-shrink-0" style="background:${c.card};border-top:1px solid ${c.border}">
+          <div>
+            <div class="text-[12px] font-semibold tracking-[0.18em] uppercase" style="color:${c.accent}">${company}</div>
+            <div class="text-[11px] mt-0.5" style="color:${c.muted}">${collection} · Look ${String(idx+1).padStart(2,'0')}</div>
+          </div>
+          <div class="flex gap-5 text-right flex-wrap justify-end">
+            ${fields.slice(0,4).map(f=>`<div><div class="text-[9px] uppercase tracking-wider" style="color:${c.muted}">${f.label}</div><div class="text-[11px] font-medium" style="color:${c.text}">${f.value}</div></div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+
+    case 'magazine_hero':
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-3 px-4 py-3 min-h-0" style="background:${c.bg}">
+          <div class="col-span-7 min-h-0">${imageArea('hero',s.front,s.back,c)}</div>
+          <div class="col-span-5 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}</div>
+        </div>${footerBar(idx+1,total,c)}`;
+
+    case 'centered_dual':
+    case 'centered_single':
+      return `<div class="flex-1 flex flex-col min-h-0" style="background:${c.bg}">
+        <div class="px-5 pt-4 pb-2 text-center flex-shrink-0">
+          <div class="text-[13px] font-semibold tracking-[0.25em] uppercase" style="color:${c.accent}">${company}</div>
+          <div class="text-[11px] tracking-[0.15em] uppercase mt-1" style="color:${c.muted}">${collection} · Look ${String(idx+1).padStart(2,'0')}</div>
+        </div>
+        <div class="flex-1 px-10 py-2 min-h-0">${imgs}</div>
+        <div class="px-8 pb-4 flex-shrink-0">
+          <div class="flex flex-wrap justify-center gap-x-6 gap-y-1">
+            ${fields.map(f=>`<div class="text-center"><span class="text-[10px] uppercase tracking-wider" style="color:${c.muted}">${f.label}</span> <span class="text-[11px] font-medium ml-1" style="color:${c.text}">${f.value}</span></div>`).join('')}
+          </div>
+          ${s.notes?`<p class="text-center text-[10px] mt-2" style="color:${c.muted}">${s.notes}</p>`:''}
+        </div>
+      </div>`;
+
+    case 'specs_left_dual':
+    case 'specs_left_single':
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-3 px-4 py-3 min-h-0" style="background:${c.bg}">
+          <div class="col-span-5 flex flex-col justify-center">${specsBlock(fields,s.notes,c)}</div>
+          <div class="col-span-7 min-h-0">${imgs}</div>
+        </div>${footerBar(idx+1,total,c)}`;
+
+    case 'dual_panel':
+      return `<div class="flex-1 grid grid-cols-2 min-h-0" style="background:${c.bg}">
+        <div class="flex flex-col border-r min-h-0" style="border-color:${c.border}">
+          <div class="px-4 pt-3 pb-1 flex-shrink-0">
+            <div class="text-[11px] font-semibold tracking-[0.2em] uppercase" style="color:${c.accent}">${company}</div>
+            <div class="text-[10px]" style="color:${c.muted}">${collection}</div>
+          </div>
+          <div class="flex-1 p-3 min-h-0">${imgs}</div>
+        </div>
+        <div class="flex flex-col justify-center p-5">
+          <div class="text-[11px] tracking-widest uppercase mb-3" style="color:${c.muted}">Look ${String(idx+1).padStart(2,'0')}</div>
+          ${specsBlock(fields,s.notes,c)}
+        </div>
+      </div>`;
+
+    case 'float_cards':
+      return `<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${c.bg}">
+        <div class="flex justify-between items-start mb-3 flex-shrink-0">
+          <div>
+            <div class="text-[12px] font-semibold tracking-[0.2em] uppercase" style="color:${c.accent}">${company}</div>
+            <div class="text-[10px]" style="color:${c.muted}">${collection}</div>
+          </div>
+          <div class="text-[11px] tracking-widest" style="color:${c.muted}">${String(idx+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}</div>
+        </div>
+        <div class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+          <div class="col-span-8 min-h-0 rounded-xl shadow-lg overflow-hidden" style="background:${c.card};border:1px solid ${c.border}">${imgs}</div>
+          <div class="col-span-4 flex flex-col justify-center">
+            <div class="rounded-xl shadow-lg" style="background:${c.card}">${specsBlock(fields,s.notes,c,true)}</div>
+          </div>
+        </div>
+      </div>`;
+
+    case 'runway_bar':
+      return `<div class="flex-1 flex min-h-0" style="background:${c.bg}">
+        <div class="w-12 flex flex-col items-center justify-between py-4 flex-shrink-0" style="background:${c.card};border-right:1px solid ${c.border}">
+          <div class="text-[11px] font-semibold tracking-[0.25em] uppercase" style="color:${c.accent};writing-mode:vertical-rl;transform:rotate(180deg)">${company}</div>
+          <div class="text-[10px]" style="color:${c.muted}">${String(idx+1).padStart(2,'0')}</div>
+        </div>
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="flex-1 min-h-0 p-2">${imgs}</div>
+          <div class="px-4 py-2.5 flex flex-wrap gap-x-5 gap-y-1 flex-shrink-0" style="border-top:1px solid ${c.border};background:${c.card}">
+            ${fields.map(f=>`<div><span class="text-[9px] uppercase tracking-wider" style="color:${c.muted}">${f.label}</span> <span class="text-[10px] font-medium" style="color:${c.text}">${f.value}</span></div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+
+    case 'luxury_frame':
+      return `<div class="flex-1 flex flex-col p-4 min-h-0" style="background:${c.bg}">
+        <div class="text-center mb-2 flex-shrink-0">
+          <div class="text-[14px] font-serif font-semibold tracking-[0.3em] uppercase" style="color:${c.accent}">${company}</div>
+          <div class="text-[10px] tracking-[0.2em] uppercase mt-1" style="color:${c.muted}">${collection}</div>
+          <div class="w-12 h-px mx-auto mt-2" style="background:${c.accent}"></div>
+        </div>
+        <div class="flex-1 grid grid-cols-12 gap-3 min-h-0">
+          <div class="col-span-8 min-h-0 p-2" style="border:1px solid ${c.border}">${imgs}</div>
+          <div class="col-span-4 flex flex-col justify-center">
+            <div class="text-[11px] tracking-widest uppercase mb-2" style="color:${c.muted}">Look ${String(idx+1).padStart(2,'0')}</div>
+            ${specsBlock(fields,s.notes,c,true)}
+          </div>
+        </div>
+        <div class="text-center mt-2 text-[10px] flex-shrink-0" style="color:${c.muted}">Confidential</div>
+      </div>`;
+
+    case 'vertical_stack':
+      return `<div class="flex-1 flex flex-col min-h-0" style="background:${c.bg}">
+        ${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 px-5 py-3 min-h-0">${imgs}</div>
+        <div class="px-5 pb-3 flex-shrink-0">
+          <div class="rounded-lg p-3 flex flex-wrap gap-x-6 gap-y-1.5" style="border:1px solid ${c.border};background:${c.card}">
+            ${fields.map(f=>`<div><span class="text-[10px] uppercase tracking-wider" style="color:${c.muted}">${f.label}</span> <span class="text-[11px] font-medium" style="color:${c.text}">${f.value}</span></div>`).join('')}
+            ${s.notes?`<div class="w-full text-[10px] mt-1" style="color:${c.muted}">${s.notes}</div>`:''}
+          </div>
+        </div>
+      </div>`;
+
+    case 'modern_accent':
+      return `<div class="flex-1 flex min-h-0" style="background:${c.bg}">
+        <div class="w-1.5 flex-shrink-0" style="background:${c.accent}"></div>
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="px-5 pt-3.5 pb-2 flex justify-between items-start flex-shrink-0">
+            <div>
+              <div class="text-[12px] font-semibold tracking-[0.18em] uppercase" style="color:${c.accent}">${company}</div>
+              <div class="text-[10px]" style="color:${c.muted}">${collection}</div>
+            </div>
+            <div class="text-[10px]" style="color:${c.muted}">${String(idx+1).padStart(2,'0')}</div>
+          </div>
+          <div class="flex-1 grid grid-cols-12 gap-3 px-4 pb-3 min-h-0">
+            <div class="col-span-7 min-h-0">${imgs}</div>
+            <div class="col-span-5 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}</div>
+          </div>
+        </div>
+      </div>`;
+
+    case 'catalog_compact':
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-2.5 px-3.5 py-2.5 min-h-0" style="background:${c.bg}">
+          <div class="col-span-8 min-h-0">${imgs}</div>
+          <div class="col-span-4 flex flex-col justify-center text-[10px]">
+            ${fields.map(f=>`<div class="flex justify-between py-1 border-b" style="border-color:${c.border}"><span style="color:${c.muted}">${f.label}</span><span class="font-medium" style="color:${c.text}">${f.value}</span></div>`).join('')}
+            ${s.notes?`<p class="mt-2 text-[11px]" style="color:${c.muted}">${s.notes}</p>`:''}
+          </div>
+        </div>${footerBar(idx+1,total,c)}`;
+
+    case 'bold_type':
+      const styleNo=s.fields?.style?.active!==false?s.fields?.style?.value:'LOOK';
+      return `<div class="flex-1 flex min-h-0" style="background:${c.bg}">
+        <div class="w-[36%] flex flex-col justify-center px-5 py-4 flex-shrink-0" style="border-right:1px solid ${c.border}">
+          <div class="text-[10px] tracking-[0.25em] uppercase mb-2" style="color:${c.muted}">${company}</div>
+          <div class="text-2xl font-semibold leading-tight mb-1" style="color:${c.text}">${styleNo}</div>
+          <div class="text-[11px] mb-4" style="color:${c.muted}">${collection} · ${String(idx+1).padStart(2,'0')}</div>
+          <div class="space-y-1.5">
+            ${fields.filter(f=>f.label!=='STYLE').map(f=>`<div><div class="text-[10px] uppercase tracking-wider" style="color:${c.muted}">${f.label}</div><div class="text-[12px] font-medium" style="color:${c.text}">${f.value}</div></div>`).join('')}
+          </div>
+          ${s.notes?`<p class="mt-3 text-[10px]" style="color:${c.muted}">${s.notes}</p>`:''}
+        </div>
+        <div class="flex-1 min-h-0 p-3">${imgs}</div>
+      </div>`;
+
+    case 'single_focus':
+      return `<div class="flex-1 flex flex-col min-h-0" style="background:${c.bg}">
+        <div class="px-5 pt-3.5 pb-2 flex justify-between items-center flex-shrink-0">
+          <div class="text-[12px] font-semibold tracking-[0.2em] uppercase" style="color:${c.accent}">${company}</div>
+          <div class="text-[11px]" style="color:${c.muted}">${collection} · ${String(idx+1).padStart(2,'0')}</div>
+        </div>
+        <div class="flex-1 px-6 py-2 min-h-0">${imgs}</div>
+        <div class="px-6 pb-3 flex flex-wrap gap-x-5 gap-y-1 justify-center flex-shrink-0">
+          ${fields.slice(0,5).map(f=>`<div class="text-center"><span class="text-[10px] uppercase" style="color:${c.muted}">${f.label}</span> <span class="text-[11px] font-medium" style="color:${c.text}">${f.value}</span></div>`).join('')}
+        </div>
+      </div>`;
+
+    case 'lookbook_row':
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-3 px-4 py-3 min-h-0" style="background:${c.bg}">
+          <div class="col-span-9 min-h-0">${imgs}</div>
+          <div class="col-span-3 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}</div>
+        </div>${footerBar(idx+1,total,c)}`;
+
+    case 'denim_spec_sheet':
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-3 px-5 py-4 min-h-0" style="background:${c.bg}">
+          <div class="col-span-7 min-h-0">${dualBoxes(s.front,s.back,c)}</div>
+          <div class="col-span-5 flex flex-col justify-center gap-2">
+            <div class="px-3 py-2" style="border-left:4px solid ${c.accent};background:${c.card}"><div class="text-[10px] uppercase tracking-[0.2em]" style="color:${c.muted}">Garment / Style</div><div class="text-lg font-semibold" style="color:${c.text}">${s.fields?.style?.value||'Style details'}</div></div>
+            ${specsBlock(fields,s.notes,c,true)}
+          </div>
+        </div>${footerBar(idx+1,total,c)}`;
+    case 'editorial_split':
+      return `<div class="flex-1 flex min-h-0" style="background:${c.bg}">
+        <div class="w-[66%] min-h-0 p-4">${heroBoxes(s.front,s.back,c)}</div>
+        <div class="flex-1 flex flex-col justify-between p-5" style="background:${c.card};border-left:1px solid ${c.border}">
+          <div><div class="text-[11px] uppercase tracking-[0.25em] mb-2" style="color:${c.accent}">${company}</div><div class="font-serif text-2xl leading-tight" style="color:${c.text}">${s.fields?.style?.value||'The Collection'}</div><div class="text-[11px] mt-2" style="color:${c.muted}">${collection} · LOOK ${String(idx+1).padStart(2,'0')}</div></div>
+          ${specsBlock(fields,s.notes,c,true)}<div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">Front / Back · Product overview</div>
+        </div></div>`;
+    case 'product_focus':
+      return `<div class="flex-1 flex flex-col min-h-0" style="background:${c.bg}">
+        <div class="px-6 pt-4 flex justify-between items-end"><div><div class="text-[12px] font-semibold tracking-[0.2em] uppercase" style="color:${c.accent}">${company}</div><div class="text-[10px] uppercase tracking-widest mt-1" style="color:${c.muted}">${collection}</div></div><div class="text-[11px]" style="color:${c.muted}">STYLE ${s.fields?.style?.value||'—'}</div></div>
+        <div class="flex-1 px-6 py-3 min-h-0">${singleBox(s.front,s.back,c)}</div>
+        <div class="mx-6 mb-4 p-3 grid grid-cols-4 gap-3" style="background:${c.card};border-top:2px solid ${c.accent}">${fields.slice(0,8).map(f=>`<div><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">${f.label}</div><div class="text-[10px] font-medium mt-1" style="color:${c.text}">${f.value}</div></div>`).join('')}</div></div>`;
+    case 'atelier_minimal':
+      return `<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${c.bg}">
+        <div class="flex justify-between items-center pb-3" style="border-bottom:1px solid ${c.accent}"><div class="font-serif text-lg tracking-[0.18em]" style="color:${c.text}">${company}</div><div class="text-[10px] uppercase tracking-[0.2em]" style="color:${c.muted}">${collection} / ${String(idx+1).padStart(2,'0')}</div></div>
+        <div class="flex-1 grid grid-cols-12 gap-5 py-4 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-4 flex flex-col justify-center"><div class="font-serif text-xl mb-3" style="color:${c.text}">${s.fields?.style?.value||'Product Details'}</div>${specsBlock(fields,s.notes,c,true)}</div></div>
+        <div class="flex justify-between pt-2 text-[9px] uppercase tracking-[0.2em]" style="border-top:1px solid ${c.border};color:${c.muted}"><span>Collection overview</span><span>Confidential · ${idx+1}/${total}</span></div></div>`;
+    case 'buyer_review':
+      return `<div class="flex-1 flex flex-col min-h-0" style="background:${c.bg}">${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-4 p-4 min-h-0"><div class="col-span-7 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-5 flex flex-col gap-3 justify-center"><div><div class="text-[10px] uppercase tracking-[0.2em] mb-1" style="color:${c.accent}">Buyer review sheet</div><div class="text-xl font-semibold" style="color:${c.text}">${s.fields?.style?.value||'Style overview'}</div></div>${specsBlock(fields,s.notes,c,true)}</div></div>${footerBar(idx+1,total,c)}</div>`;
+    case 'technical_grid':
+      return `<div class="flex-1 flex flex-col min-h-0 p-4" style="background:${c.bg}"><div class="flex justify-between items-center pb-2" style="border-bottom:2px solid ${c.accent}"><div class="text-[11px] font-bold tracking-[0.2em] uppercase" style="color:${c.text}">${company}</div><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">${collection} · TECHNICAL OVERVIEW</div></div>
+        <div class="flex-1 grid grid-cols-12 gap-3 py-3 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-4 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}</div></div><div class="text-[9px] uppercase tracking-widest text-right" style="color:${c.muted}">Style ${s.fields?.style?.value||'—'} · Page ${idx+1}</div></div>`;
+
+    case 'premium_catalog':
+      return `<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${c.bg}"><div class="flex items-end justify-between pb-3" style="border-bottom:2px solid ${c.accent}"><div><div class="text-[10px] uppercase tracking-[0.3em]" style="color:${c.muted}">Collection / Product Catalog</div><div class="text-2xl font-semibold mt-1" style="color:${c.text}">${s.fields?.style?.value||'Product Name'}</div></div><div class="text-right"><div class="text-[11px] font-bold tracking-[0.2em]" style="color:${c.accent}">${company}</div><div class="text-[10px] mt-1" style="color:${c.muted}">${collection} · ${String(idx+1).padStart(2,'0')}</div></div></div><div class="flex-1 grid grid-cols-12 gap-4 py-4 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-4 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}</div></div><div class="flex justify-between text-[9px] uppercase tracking-widest" style="color:${c.muted}"><span>Product range</span><span>${String(idx+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}</span></div></div>`;
+    case 'color_story':
+      return `<div class="flex-1 flex min-h-0" style="background:${c.bg}"><div class="w-[30%] p-5 flex flex-col justify-between" style="background:${c.card};border-right:1px solid ${c.border}"><div><div class="text-[10px] font-bold tracking-[0.22em] uppercase" style="color:${c.accent}">${company}</div><div class="text-2xl font-semibold mt-8 leading-tight" style="color:${c.text}">${s.fields?.color?.value||'Color Story'}</div><div class="text-[11px] mt-2" style="color:${c.muted}">${collection}</div></div><div>${fields.filter(f=>['Fabric','Composition','Season','GSM'].includes(f.label)).map(f=>`<div class="py-2" style="border-top:1px solid ${c.border}"><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">${f.label}</div><div class="text-[10px] mt-1" style="color:${c.text}">${f.value}</div></div>`).join('')}</div><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">Color / Material</div></div><div class="flex-1 flex flex-col p-4 min-h-0"><div class="flex justify-between mb-3"><span class="text-[10px] uppercase tracking-[0.2em]" style="color:${c.muted}">Front & back views</span><span class="text-[10px]" style="color:${c.muted}">LOOK ${String(idx+1).padStart(2,'0')}</span></div><div class="flex-1 min-h-0">${dualBoxes(s.front,s.back,c)}</div>${s.notes?`<div class="text-[11px] mt-3" style="color:${c.muted}">${s.notes}</div>`:''}</div></div>`;
+    case 'line_sheet':
+      return `<div class="flex-1 flex flex-col p-4 min-h-0" style="background:${c.bg}"><div class="flex justify-between items-center pb-2" style="border-bottom:1px solid ${c.border}"><div class="text-[11px] font-bold tracking-[0.2em] uppercase" style="color:${c.text}">${company}</div><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">Buyer Line Sheet · ${collection}</div></div><div class="flex-1 grid grid-cols-12 gap-4 py-3 min-h-0"><div class="col-span-7 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-5 flex flex-col min-h-0"><div class="pb-2 mb-2" style="border-bottom:2px solid ${c.accent}"><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">Style reference</div><div class="text-xl font-semibold" style="color:${c.text}">${s.fields?.style?.value||'—'}</div></div>${specsBlock(fields,s.notes,c,true)}<div class="mt-auto pt-2 flex justify-between text-[9px]" style="color:${c.muted}"><span>Buyer review copy</span><span>PAGE ${idx+1}</span></div></div></div></div>`;
+    case 'merchandising_board':
+      return `<div class="flex-1 p-5 min-h-0 flex flex-col" style="background:${c.bg}"><div class="flex items-center justify-between mb-4"><div><div class="text-[10px] uppercase tracking-[0.25em]" style="color:${c.accent}">Merchandising Presentation</div><div class="text-xl font-semibold mt-1" style="color:${c.text}">${s.fields?.style?.value||'Style Overview'}</div></div><div class="text-right text-[10px]" style="color:${c.muted}">${company} · ${collection}</div></div><div class="flex-1 grid grid-cols-12 gap-4 min-h-0"><div class="col-span-7 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-5 flex flex-col gap-3"><div class="grid grid-cols-2 gap-2">${fields.slice(0,4).map(f=>`<div class="p-2" style="background:${c.card};border:1px solid ${c.border}"><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">${f.label}</div><div class="text-[10px] font-semibold mt-1" style="color:${c.text}">${f.value}</div></div>`).join('')}</div>${specsBlock(fields.slice(4),s.notes,c,true)}</div></div></div>`;
+    case 'wash_detail':
+      return `<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${c.bg}"><div class="flex justify-between items-end pb-3" style="border-bottom:1px solid ${c.border}"><div><div class="text-[10px] uppercase tracking-[0.25em]" style="color:${c.accent}">Denim / Wash & Finish</div><div class="text-2xl font-semibold mt-1" style="color:${c.text}">${s.fields?.style?.value||'Denim Style'}</div></div><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">${collection} · ${idx+1}</div></div><div class="flex-1 grid grid-cols-12 gap-4 py-4 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-4 flex flex-col justify-center"><div class="p-3 mb-3" style="background:${c.card};border-left:3px solid ${c.accent}"><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">Wash / Color</div><div class="text-lg font-semibold mt-1" style="color:${c.text}">${s.fields?.color?.value||'—'}</div></div>${specsBlock(fields.filter(f=>f.label!=='Color'),s.notes,c,true)}</div></div><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">Front view / Back view · Review for approval</div></div>`;
+    case 'spec_sidebar':
+      return `<div class="flex-1 flex min-h-0" style="background:${c.bg}"><div class="flex-1 p-4 min-h-0">${dualBoxes(s.front,s.back,c)}</div><aside class="w-[31%] p-4 flex flex-col" style="background:${c.card};border-left:1px solid ${c.border}"><div class="text-[10px] font-bold tracking-[0.2em] uppercase" style="color:${c.accent}">${company}</div><div class="text-xl font-semibold mt-5 mb-1" style="color:${c.text}">${s.fields?.style?.value||'Product Specs'}</div><div class="text-[10px] mb-4" style="color:${c.muted}">${collection}</div>${specsBlock(fields,s.notes,c,true)}<div class="mt-auto pt-3 text-[9px] uppercase tracking-widest" style="color:${c.muted}">Product details · ${idx+1}/${total}</div></aside></div>`;
+    case 'asymmetry_editorial':
+      return `<div class="flex-1 flex p-5 gap-5 min-h-0" style="background:${c.bg}"><div class="w-[62%] flex flex-col min-h-0"><div class="text-[10px] uppercase tracking-[0.25em] mb-3" style="color:${c.accent}">${company} / ${collection}</div><div class="flex-1 min-h-0">${heroBoxes(s.front,s.back,c)}</div><div class="text-[10px] mt-2" style="color:${c.muted}">GARMENT STUDY · ${String(idx+1).padStart(2,'0')}</div></div><div class="flex-1 flex flex-col justify-between py-2"><div><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">The edit</div><div class="font-serif text-3xl leading-tight mt-2 mb-4" style="color:${c.text}">${s.fields?.style?.value||'New Season'}</div><div style="height:3px;width:42px;background:${c.accent}"></div></div>${specsBlock(fields,s.notes,c,true)}<div class="text-[9px] uppercase tracking-[0.2em]" style="color:${c.muted}">Design / Development / Review</div></div></div>`;
+    case 'dark_editorial':
+      return `<div class="flex-1 flex flex-col p-5 min-h-0" style="background:#151515;color:#f5f5f5"><div class="flex justify-between items-center pb-3" style="border-bottom:1px solid #3a3a3a"><div class="text-[11px] font-semibold tracking-[0.3em] uppercase">${company}</div><div class="text-[10px] uppercase tracking-widest" style="color:#a3a3a3">${collection} · PRIVATE VIEW</div></div><div class="flex-1 grid grid-cols-12 gap-4 py-4 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,{...c,bg:'#202020',card:'#202020',text:'#f5f5f5',muted:'#a3a3a3',border:'#414141',isDark:true})}</div><div class="col-span-4 flex flex-col justify-center"><div class="text-[10px] uppercase tracking-[0.2em] mb-2" style="color:#d4af37">Collection piece ${idx+1}</div><div class="text-2xl font-semibold mb-3">${s.fields?.style?.value||'The Essential'}</div>${specsBlock(fields,s.notes,{...c,bg:'#202020',card:'#202020',text:'#f5f5f5',muted:'#a3a3a3',border:'#414141',isDark:true},true)}</div></div></div>`;
+    case 'retail_range':
+      return `<div class="flex-1 flex flex-col p-4 min-h-0" style="background:${c.bg}"><div class="flex justify-between items-end mb-3"><div><div class="text-[10px] uppercase tracking-[0.2em]" style="color:${c.accent}">Retail Range Plan</div><div class="text-xl font-semibold mt-1" style="color:${c.text}">${collection||'Collection Range'}</div></div><div class="text-[10px]" style="color:${c.muted}">${company} · STYLE ${idx+1}</div></div><div class="flex-1 grid grid-cols-12 gap-3 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-4 flex flex-col justify-center"><div class="p-3 mb-3" style="background:${c.card};border:1px solid ${c.border}"><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">Style / Item</div><div class="text-xl font-semibold mt-1" style="color:${c.text}">${s.fields?.style?.value||'—'}</div></div>${specsBlock(fields,s.notes,c,true)}</div></div><div class="pt-2 mt-3 flex justify-between" style="border-top:1px solid ${c.border};color:${c.muted}"><span class="text-[9px] uppercase tracking-widest">Assortment planning</span><span class="text-[9px]">${idx+1} / ${total}</span></div></div>`;
+    case 'executive_summary':
+      return `<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${c.bg}"><div class="flex justify-between pb-3" style="border-bottom:2px solid ${c.accent}"><div><div class="text-[10px] uppercase tracking-[0.25em]" style="color:${c.muted}">Product Executive Summary</div><div class="text-xl font-semibold mt-1" style="color:${c.text}">${s.fields?.style?.value||'Style Summary'}</div></div><div class="text-[10px] font-bold tracking-[0.2em]" style="color:${c.accent}">${company}</div></div><div class="flex-1 grid grid-cols-12 gap-4 py-4 min-h-0"><div class="col-span-7 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-5 flex flex-col justify-center"><div class="grid grid-cols-2 gap-2 mb-3">${fields.slice(0,4).map(f=>`<div class="p-2" style="background:${c.card};border-bottom:2px solid ${c.accent}"><div class="text-[9px] uppercase" style="color:${c.muted}">${f.label}</div><div class="text-[10px] font-semibold mt-1" style="color:${c.text}">${f.value}</div></div>`).join('')}</div>${specsBlock(fields.slice(4),s.notes,c,true)}</div></div><div class="text-[9px] uppercase tracking-widest text-right" style="color:${c.muted}">${collection} · ${idx+1}/${total}</div></div>`;
+    case 'swiss_grid':
+      return `<div class="flex-1 grid grid-cols-12 min-h-0" style="background:${c.bg}"><div class="col-span-2 p-4 flex flex-col justify-between" style="border-right:1px solid ${c.border}"><div class="text-[11px] font-bold tracking-[0.18em]" style="color:${c.text}">${company}</div><div class="text-3xl font-light" style="color:${c.accent}">${String(idx+1).padStart(2,'0')}</div><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">${collection}</div></div><div class="col-span-10 p-4 flex flex-col min-h-0"><div class="flex justify-between items-end pb-2" style="border-bottom:1px solid ${c.border}"><div class="text-xl font-semibold" style="color:${c.text}">${s.fields?.style?.value||'Product Grid'}</div><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">Design / Details</div></div><div class="flex-1 grid grid-cols-12 gap-4 py-3 min-h-0"><div class="col-span-8 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="col-span-4 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}</div></div></div></div>`;
+    case 'studio_contact':
+      return `<div class="flex-1 flex flex-col p-4 min-h-0" style="background:${c.bg}"><div class="flex justify-between items-center pb-2" style="border-bottom:1px solid ${c.border}"><div class="text-[10px] font-bold tracking-[0.2em] uppercase" style="color:${c.text}">${company}</div><div class="text-[10px] uppercase tracking-widest" style="color:${c.muted}">Studio Contact Sheet / ${collection}</div></div><div class="flex-1 grid grid-cols-12 gap-3 py-3 min-h-0"><div class="col-span-8 flex flex-col min-h-0"><div class="flex-1 min-h-0">${dualBoxes(s.front,s.back,c)}</div><div class="flex justify-between mt-2 text-[9px] uppercase tracking-widest" style="color:${c.muted}"><span>01 / Front view</span><span>02 / Back view</span></div></div><div class="col-span-4 flex flex-col justify-center">${specsBlock(fields,s.notes,c,true)}<div class="mt-3 p-2" style="border:1px solid ${c.border}"><div class="text-[9px] uppercase tracking-widest" style="color:${c.muted}">Reference</div><div class="text-[10px] font-semibold mt-1" style="color:${c.text}">${s.fields?.style?.value||'STYLE'} / ${String(idx+1).padStart(2,'0')}</div></div></div></div></div>`;
+    default:
+      return `${headerBar(company,collection,idx+1,c)}
+        <div class="flex-1 grid grid-cols-12 gap-3 px-4 py-3 min-h-0" style="background:${c.bg}">
+          <div class="col-span-7 min-h-0">${imgs}</div>
+          <div class="col-span-5 flex flex-col justify-center">${specsBlock(fields,s.notes,c)}</div>
+        </div>${footerBar(idx+1,total,c)}`;
+  }
+}
+
+
+const esc=v=>String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const tiles=(F,c,cols)=>`<div class="grid grid-cols-${cols} gap-2">${F.map(f=>`<div class="p-2" style="background:${c.card};border:1px solid ${c.border}"><div class="text-[9px] uppercase tracking-wider" style="color:${c.muted}">${f.label}</div><div class="text-[12px] font-semibold mt-0.5" style="color:${c.text}">${f.value}</div></div>`).join('')}</div>`;
+const noteP=(n,c)=>n?`<p class="text-[11px] leading-snug mt-2" style="color:${c.muted}">${n}</p>`:'';
+const extraLayouts={
+color_block:x=>`<div class="flex-1 flex min-h-0"><div class="w-[34%] p-6 flex flex-col justify-between" style="background:${x.c.accent};color:${x.c.isDark?'#000':'#fff'}"><div class="text-[11px] font-bold tracking-[0.25em] uppercase">${x.co}</div><div><div class="font-serif text-4xl leading-none">${x.st}</div><div class="text-[11px] mt-2 opacity-80">${x.col} · Look ${x.n}</div></div><div class="text-[11px] opacity-90 leading-relaxed">${x.F.slice(0,5).map(f=>f.label+': '+f.value).join('<br>')}</div></div><div class="flex-1 p-4 min-h-0" style="background:${x.c.bg}">${x.dual}</div></div>`,
+polaroid:x=>`${headerBar(x.co,x.col,x.i,x.c)}<div class="flex-1 px-8 py-4 min-h-0 flex justify-center gap-6" style="background:${x.c.bg}">${['front','back'].filter(k=>x.s[k]||(!x.s.front&&!x.s.back)).map(k=>`<div class="flex-1 max-w-[48%] flex flex-col min-h-0 p-3 shadow-xl" style="background:#fff;border:1px solid ${x.c.border}"><div class="img-box flex-1 min-h-0">${x.s[k]?`<img src="${x.s[k]}">`:''}</div><div class="text-center text-[10px] tracking-[0.25em] uppercase pt-2" style="color:#555">${k} · ${x.st}</div></div>`).join('')}</div><div class="px-8 pb-3" style="background:${x.c.bg}">${tiles(x.F.slice(0,4),x.c,4)}</div>`,
+tech_cover:x=>`<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${x.c.bg}"><div class="flex justify-between items-end pb-2" style="border-bottom:3px solid ${x.c.accent}"><div class="text-[26px] font-bold leading-none" style="color:${x.c.text}">${x.st}</div><div class="text-right text-[11px]" style="color:${x.c.muted}">${x.co} · ${x.col} · ${x.n}/${x.total}</div></div><div class="flex-1 min-h-0 py-3">${x.dual}</div>${tiles(x.F.slice(0,8),x.c,4)}</div>`,
+big_number:x=>`<div class="flex-1 relative flex min-h-0" style="background:${x.c.bg}"><div class="absolute right-4 -top-6 font-serif font-bold leading-none pointer-events-none" style="font-size:240px;color:${x.c.accent};opacity:.1">${x.n}</div><div class="flex-1 p-5 min-h-0 relative">${x.dual}</div><div class="w-[36%] p-5 flex flex-col justify-center relative"><div class="text-[11px] tracking-[0.25em] uppercase font-semibold" style="color:${x.c.accent}">${x.co}</div><div class="text-2xl font-semibold mb-3" style="color:${x.c.text}">${x.st}</div>${specsBlock(x.F,x.s.notes,x.c,true)}</div></div>`,
+rail_right:x=>`<div class="flex-1 flex min-h-0" style="background:${x.c.bg}"><div class="flex-1 p-5 min-h-0">${x.dual}</div><div class="w-[30%] p-5 flex flex-col justify-center" style="background:${x.c.card}">${specsBlock(x.F,x.s.notes,x.c,true)}</div><div class="w-9 flex items-center justify-center" style="background:${x.c.accent}"><span class="text-[11px] font-bold tracking-[0.4em] uppercase whitespace-nowrap" style="writing-mode:vertical-rl;color:${x.c.isDark?'#000':'#fff'}">${x.co} · ${x.col}</span></div></div>`,
+caption_line:x=>`<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${x.c.bg}"><div class="flex-1 min-h-0">${x.dual}</div><div class="pt-3 mt-3 flex flex-wrap gap-x-5 gap-y-1 items-baseline text-[11px]" style="border-top:1px solid ${x.c.border};color:${x.c.muted}"><b class="text-[13px] tracking-[0.2em] uppercase" style="color:${x.c.accent}">${x.co}</b><b style="color:${x.c.text}">${x.st}</b>${x.F.slice(0,6).map(f=>`<span>${f.label} <b style="color:${x.c.text}">${f.value}</b></span>`).join('')}</div>${noteP(x.s.notes,x.c)}</div>`,
+tile_grid:x=>`<div class="flex-1 flex flex-col p-5 min-h-0" style="background:${x.c.bg}"><div class="flex justify-between items-center mb-2"><div class="text-[12px] font-bold tracking-[0.2em] uppercase" style="color:${x.c.accent}">${x.co}</div><div class="text-[11px]" style="color:${x.c.muted}">${x.col} · Look ${x.n}</div></div><div class="flex-1 min-h-0 mb-3">${x.dual}</div>${tiles(x.F.slice(0,8),x.c,4)}${noteP(x.s.notes,x.c)}</div>`,
+cover_hero:x=>`<div class="flex-1 flex flex-col min-h-0" style="background:${x.c.bg}"><div class="flex-1 min-h-0 p-3">${heroBoxes(x.s.front,x.s.back,x.c)}</div><div class="px-6 py-4 flex items-center justify-between gap-6" style="background:${x.c.accent};color:${x.c.isDark?'#000':'#fff'}"><div><div class="font-serif text-3xl leading-none">${x.st}</div><div class="text-[10px] tracking-[0.25em] uppercase mt-1 opacity-80">${x.co} · ${x.col} · ${x.n}</div></div><div class="flex gap-6">${x.F.slice(1,5).map(f=>`<div><div class="text-[9px] uppercase tracking-wider opacity-70">${f.label}</div><div class="text-[12px] font-semibold">${f.value}</div></div>`).join('')}</div></div></div>`,
+order_sheet:x=>`${headerBar(x.co,x.col,x.i,x.c)}<div class="flex-1 grid grid-cols-12 gap-4 p-4 min-h-0" style="background:${x.c.bg}"><div class="col-span-7 min-h-0">${x.dual}</div><div class="col-span-5 flex flex-col justify-center gap-2"><div class="p-3 text-center" style="background:${x.c.accent};color:${x.c.isDark?'#000':'#fff'}"><div class="text-[10px] tracking-[0.25em] uppercase opacity-80">Minimum Order</div><div class="text-2xl font-bold">${x.s.fields?.moq?.value||'—'}</div></div>${specsBlock(x.F.filter(f=>f.label!=='MOQ'),x.s.notes,x.c,true)}</div></div>${footerBar(x.i,x.total,x.c)}`,
+gallery_mat:x=>`<div class="flex-1 flex flex-col items-center justify-center p-6 min-h-0" style="background:${x.c.bg}"><div class="text-[11px] tracking-[0.35em] uppercase mb-3" style="color:${x.c.accent}">${x.co} — ${x.col}</div><div class="flex-1 min-h-0 w-full p-5" style="background:${x.c.card};border:1px solid ${x.c.border};box-shadow:0 12px 30px rgba(0,0,0,.18)">${x.dual}</div><div class="text-[12px] tracking-[0.2em] uppercase mt-3" style="color:${x.c.text}">${x.st} <span style="color:${x.c.muted}">· ${x.F.slice(1,3).map(f=>f.value).join(' · ')}</span></div></div>`,
+ribbon:x=>`<div class="px-6 py-3 flex justify-between items-center flex-shrink-0" style="background:${x.c.accent};color:${x.c.isDark?'#000':'#fff'}"><div class="text-[14px] font-bold tracking-[0.25em] uppercase">${x.co}</div><div class="text-[11px] tracking-[0.2em] uppercase">${x.col} · Look ${x.n}</div></div><div class="flex-1 grid grid-cols-12 gap-4 p-4 min-h-0" style="background:${x.c.bg}"><div class="col-span-7 min-h-0">${x.dual}</div><div class="col-span-5 flex flex-col justify-center">${specsBlock(x.F,x.s.notes,x.c,true)}</div></div>${footerBar(x.i,x.total,x.c)}`,
+duo_tone:x=>`<div class="flex-1 flex flex-col min-h-0" style="background:${x.c.bg}"><div class="flex-1 min-h-0 px-10 pt-4 pb-0 relative" style="background:${x.c.card}"><div class="text-[11px] font-bold tracking-[0.3em] uppercase mb-2" style="color:${x.c.accent}">${x.co} · ${x.col}</div><div class="h-[88%]">${x.dual}</div></div><div class="px-10 py-3 flex items-center gap-6 flex-shrink-0"><div class="font-serif text-2xl" style="color:${x.c.text}">${x.st}</div><div class="flex-1">${tiles(x.F.slice(1,5),x.c,4)}</div></div></div>`
+};
+
+const tbl=(F,c)=>`<table class="w-full" style="border-collapse:collapse">${F.map(f=>`<tr><td class="py-1.5 pr-3 text-[10px] uppercase tracking-wider align-top" style="color:${c.muted};border-bottom:1px solid ${c.border}">${f.label}</td><td class="py-1.5 text-[12px] font-medium" style="color:${c.text};border-bottom:1px solid ${c.border}">${f.value}</td></tr>`).join('')}</table>`;
+const freeImg=s=>!s?'':`<div class="flex-1 min-w-0 flex items-center justify-center" style="height:100%">${s?`<img src="${s}" style="max-width:100%;max-height:100%;object-fit:contain">`:''}</div>`;
+Object.assign(extraLayouts,{
+corner_table:x=>`<div class="flex-1 flex min-h-0" style="background:${x.c.bg}"><div class="w-[30%] p-5 flex flex-col min-h-0 flex-shrink-0"><div class="text-[12px] font-bold tracking-[0.25em] uppercase" style="color:${x.c.accent}">${x.co}</div><div class="text-[10px] mb-4 mt-0.5" style="color:${x.c.muted}">${x.col} · Look ${x.n}</div>${tbl(x.F,x.c)}${noteP(x.s.notes,x.c)}</div><div class="flex-1 flex gap-2 p-4 min-h-0">${freeImg(x.s.front)}${freeImg(x.s.back)}</div></div>`,
+corner_table_top:x=>`<div class="flex-1 flex flex-col min-h-0 p-5" style="background:${x.c.bg}"><div class="flex justify-between items-start flex-shrink-0"><div class="w-[76%]"><table class="w-full" style="border-collapse:collapse"><tr>${x.F.slice(0,8).map(f=>`<th class="text-left text-[9px] uppercase tracking-wider font-semibold px-2 py-1.5" style="color:${x.c.isDark?'#000':'#fff'};background:${x.c.accent}">${f.label}</th>`).join('')}</tr><tr>${x.F.slice(0,8).map(f=>`<td class="text-[11px] font-medium px-2 py-2" style="color:${x.c.text};border-bottom:1px solid ${x.c.border}">${f.value}</td>`).join('')}</tr></table></div><div class="text-right"><div class="text-[12px] font-bold tracking-[0.25em] uppercase" style="color:${x.c.accent}">${x.co}</div><div class="text-[10px] mt-0.5" style="color:${x.c.muted}">${x.col} · Look ${x.n}</div></div></div><div class="flex-1 flex gap-2 pt-3 min-h-0">${freeImg(x.s.front)}${freeImg(x.s.back)}</div>${x.s.notes?`<p class="text-[11px] flex-shrink-0" style="color:${x.c.muted}">${x.s.notes}</p>`:''}</div>`
+});
+function buildLayout(key,s,c,company,collection,idx,total){
+  const e={...s,back:s.single?'':s.back,notes:esc(s.notes),fields:Object.fromEntries(Object.entries(s.fields||{}).map(([k,f])=>[k,{...f,value:esc(f.value)}]))};
+  const co=esc(company),col=esc(collection);
+  const ov=s.detail?detailOverlay(s,c):'';
+  if(extraLayouts[key]) return extraLayouts[key]({s:e,c,co,col,i:idx+1,n:String(idx+1).padStart(2,'0'),total,F:activeFields(e),st:e.fields?.style?.value||'Style',dual:dualBoxes(e.front,e.back,c)})+ov;
+  return _buildLayout(key,e,c,co,col,idx,total)+ov;
+}
+function detailOverlay(s,c){
+  const P={br:'bottom:46px;right:18px',bl:'bottom:46px;left:18px',tr:'top:58px;right:18px',tl:'top:58px;left:18px'}[s.detailPos||'br'];
+  return `<div style="position:absolute;${P};width:${s.detailSize||20}%;padding:4px;background:${c.card};border:2px solid ${c.accent};box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:20"><img src="${s.detail}" style="width:100%;max-height:${(s.detailSize||20)*8.5}px;object-fit:contain;display:block"><div style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;text-align:center;color:${c.accent};padding-top:3px">Detail</div></div>`}
+function dupSlide(i){slides.splice(i+1,0,JSON.parse(JSON.stringify(slides[i])));currentSlideIndex=i+1;renderApp()}
+
+// ========== OPTIONAL CLOUD SYNC (Firebase free tier) ==========
+let cloudApp=null, cloudAuth=null, cloudDB=null, cloudSyncTimer=null, cloudBusy=false;
+function openCloudSync(){document.getElementById('cloud-sync-modal').classList.remove('hidden');loadCloudSettings();}
+function closeCloudSync(){document.getElementById('cloud-sync-modal').classList.add('hidden');}
+function cloudMsg(msg,isError=false){const el=document.getElementById('cloud-status');if(el){el.textContent=msg;el.className='rounded-lg border p-3 '+(isError?'bg-rose-950/40 border-rose-900 text-rose-300':'bg-zinc-950 border-zinc-800 text-zinc-300');}}
+function cloudConfigFromForm(){return {apiKey:document.getElementById('cloud-api-key').value.trim(),projectId:document.getElementById('cloud-project-id').value.trim(),authDomain:document.getElementById('cloud-auth-domain').value.trim(),databaseURL:document.getElementById('cloud-database-url').value.trim()};}
+function loadCloudSettings(){try{const c=JSON.parse(localStorage.getItem('fls_firebase_config')||'{}');[['apiKey','cloud-api-key'],['projectId','cloud-project-id'],['authDomain','cloud-auth-domain'],['databaseURL','cloud-database-url']].forEach(([k,id])=>{if(c[k])document.getElementById(id).value=c[k];});}catch(e){}}
+function saveCloudSettings(){const c=cloudConfigFromForm();if(!c.apiKey||!c.projectId||!c.authDomain||!c.databaseURL){cloudMsg('Please fill all four Firebase configuration fields.',true);return;}localStorage.setItem('fls_firebase_config',JSON.stringify(c));cloudMsg('Settings saved on this device. Enter your email/password, then create an account or connect.');}
+function initCloud(){
+ if(cloudAuth&&cloudDB)return true;
+ if(!window.firebase){cloudMsg('Firebase libraries did not load. Check your internet connection.',true);return false;}
+ const c=cloudConfigFromForm();if(!c.apiKey||!c.projectId||!c.authDomain||!c.databaseURL){cloudMsg('Fill the four Firebase settings first.',true);return false;}
+ try{cloudApp=firebase.apps.find(a=>a.name==='lookbookCloud')||firebase.initializeApp(c,'lookbookCloud');cloudAuth=cloudApp.auth();cloudDB=cloudApp.database();return true;}catch(e){cloudMsg('Firebase setup error: '+e.message,true);return false;}
+}
+function cloudEmail(){return document.getElementById('cloud-email').value.trim();}
+function cloudPassword(){return document.getElementById('cloud-password').value;}
+async function cloudCreateAccount(){saveCloudSettings();if(!initCloud())return;try{await cloudAuth.createUserWithEmailAndPassword(cloudEmail(),cloudPassword());cloudMsg('Account created and signed in. Syncing this project…');await cloudUpload();}catch(e){cloudMsg('Could not create account: '+e.message,true);}}
+async function cloudConnect(){saveCloudSettings();if(!initCloud())return;try{if(!cloudEmail()||!cloudPassword())throw new Error('Enter the same account email and password used on your other device.');await cloudAuth.signInWithEmailAndPassword(cloudEmail(),cloudPassword());cloudMsg('Signed in. Checking cloud project…');const snap=await cloudDB.ref('users/'+cloudAuth.currentUser.uid+'/lookbook').get();if(snap.exists()){if(confirm('A cloud project exists. Load it on this device? This replaces the current local lookbook.'))await applyCloudProject(snap.val());else cloudMsg('Connected. Local project kept; use Save to cloud to overwrite cloud copy.');}else{await cloudUpload();}cloudMsg('Connected as '+cloudEmail()+'. Changes will auto-sync.');}catch(e){cloudMsg('Could not connect: '+e.message,true);}}
+async function cloudUpload(){if(!initCloud())return;try{if(!cloudAuth.currentUser)await cloudAuth.signInWithEmailAndPassword(cloudEmail(),cloudPassword());const data=projectSnapshot();data.savedAt=new Date().toISOString();cloudBusy=true;await cloudDB.ref('users/'+cloudAuth.currentUser.uid+'/lookbook').set(data);cloudBusy=false;cloudMsg('Cloud project saved successfully. Open this app on your other device and connect with the same account.');}catch(e){cloudBusy=false;cloudMsg('Cloud save failed: '+e.message,true);}}
+async function cloudDownload(){if(!initCloud())return;try{if(!cloudAuth.currentUser)await cloudAuth.signInWithEmailAndPassword(cloudEmail(),cloudPassword());const snap=await cloudDB.ref('users/'+cloudAuth.currentUser.uid+'/lookbook').get();if(!snap.exists()){cloudMsg('No cloud project found for this account yet.',true);return;}if(confirm('Replace this device’s current lookbook with the cloud project?')){await applyCloudProject(snap.val());cloudMsg('Cloud project loaded.');}}catch(e){cloudMsg('Cloud load failed: '+e.message,true);}}
+async function applyCloudProject(data){slides=Array.isArray(data.slides)?data.slides:[];[['company','brand-company'],['collection','brand-collection'],['layout','layout-select'],['theme','theme-select'],['ratio','ratio-select']].forEach(([k,id])=>{const el=document.getElementById(id);if(data[k]&&el)el.value=data[k];});currentSlideIndex=0;renderApp();}
+function scheduleCloudSync(){if(!cloudAuth?.currentUser||cloudBusy)return;clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(async()=>{try{cloudBusy=true;await cloudDB.ref('users/'+cloudAuth.currentUser.uid+'/lookbook').set(projectSnapshot());cloudBusy=false;const st=document.getElementById('autosave-status');if(st)st.textContent='Saved locally + cloud';}catch(e){cloudBusy=false;console.warn('Cloud auto-sync failed:',e);const st=document.getElementById('autosave-status');if(st)st.textContent='Saved locally · cloud sync error';}},1800);}
+
+// ========== AUTOMATIC LOCAL SAVE (survives refresh on this device) ==========
+const LOCAL_DB_NAME='FashionLookbookStudioDB';
+const LOCAL_STORE='projects';
+let localSaveTimer=null;
+function openLocalDB(){return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(new Error('Browser storage is unavailable'));return;}
+  const req=indexedDB.open(LOCAL_DB_NAME,1);
+  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(LOCAL_STORE))db.createObjectStore(LOCAL_STORE);};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Could not open local storage'));
+});}
+function projectSnapshot(){return {v:7,slides:JSON.parse(JSON.stringify(slides)),company:document.getElementById('brand-company').value,collection:document.getElementById('brand-collection').value,layout:document.getElementById('layout-select').value,theme:document.getElementById('theme-select').value,ratio:document.getElementById('ratio-select').value,savedAt:new Date().toISOString()};}
+function persistLocalProject(){
+  clearTimeout(localSaveTimer);
+  localSaveTimer=setTimeout(async()=>{
+    const status=document.getElementById('autosave-status');
+    try{const db=await openLocalDB();await new Promise((resolve,reject)=>{const tx=db.transaction(LOCAL_STORE,'readwrite');tx.objectStore(LOCAL_STORE).put(projectSnapshot(),'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();if(status)status.textContent='Auto-saved on this device';scheduleCloudSync();}
+    catch(err){console.warn('Lookbook local auto-save failed:',err);if(status)status.textContent='Auto-save unavailable';}
+  },450);
+}
+async function restoreLocalProject(){
+  try{const db=await openLocalDB();const data=await new Promise((resolve,reject)=>{const tx=db.transaction(LOCAL_STORE,'readonly');const req=tx.objectStore(LOCAL_STORE).get('latest');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});db.close();
+    if(!data)return false;
+    slides=Array.isArray(data.slides)?data.slides:[];
+    [['company','brand-company'],['collection','brand-collection'],['layout','layout-select'],['theme','theme-select'],['ratio','ratio-select']].forEach(([k,id])=>{const el=document.getElementById(id);if(data[k]&&el)el.value=data[k];});
+    const status=document.getElementById('autosave-status');if(status)status.textContent='Restored saved project';return true;
+  }catch(err){console.warn('Could not restore local project:',err);return false;}
+}
+
+// ========== MAIN RENDER ==========
+function renderApp(){
+  const layoutKey=document.getElementById('layout-select').value;
+  const themeKey=document.getElementById('theme-select').value;
+  const ratio=document.getElementById('ratio-select').value;
+  const L=layouts[layoutKey];
+  const c=themes[themeKey];
+  const company=document.getElementById('brand-company').value||'ATELIER';
+  const collection=document.getElementById('brand-collection').value||'';
+
+  document.getElementById('layout-name-display').textContent=`${L.name} · ${c.name} · ${L.desc}`;
+
+  const el=document.getElementById('slide-canvas-container');
+  el.className=`w-full ${ratio==='16:9'?'aspect-video':'aspect-[4/3]'} rounded-xl border premium-shadow relative overflow-hidden transition-all flex flex-col`;
+  el.style.backgroundColor=c.card;
+  el.style.borderColor=c.border;
+  el.style.color=c.text;
+
+  document.getElementById('slide-count-badge').textContent=`${slides.length} Look${slides.length!==1?'s':''}`;
+  document.getElementById('preview-total-num').textContent=slides.length;
+  document.getElementById('preview-current-num').textContent=slides.length?currentSlideIndex+1:0;
+
+  const seq=document.getElementById('slide-sequence-list');
+  if(!slides.length){
+    seq.innerHTML=`<p class="text-[11px] text-zinc-600 text-center py-4">No looks yet.</p>`;
+  } else {
+    seq.innerHTML=slides.map((s,i)=>`
+      <div class="flex items-center justify-between bg-zinc-950 border ${i===currentSlideIndex?'border-violet-500':'border-zinc-800'} p-1.5 rounded-lg text-[11px] group">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-zinc-600 w-4">${i+1}</span>
+          ${s.front?`<img src="${s.front}" class="w-7 h-7 object-contain rounded bg-zinc-900">`:'<div class="w-7 h-7 bg-zinc-900 rounded"></div>'}
+          <span class="font-medium truncate">${s.fields.style?.value||'Untitled'}</span>
+        </div>
+        <div class="flex gap-0.5 opacity-60 group-hover:opacity-100">
+          <button onclick="currentSlideIndex=${i};renderApp()" class="px-1.5 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400">View</button>
+          <button onclick="editSlide(${i})" class="px-1.5 py-0.5 bg-violet-950/50 text-violet-300 rounded"><i class="fa-solid fa-pen text-[9px]"></i></button>
+          <button onclick="moveSlide(${i},-1)" class="p-1 bg-zinc-800 rounded"><i class="fa-solid fa-arrow-up text-[9px]"></i></button>
+          <button onclick="moveSlide(${i},1)" class="p-1 bg-zinc-800 rounded"><i class="fa-solid fa-arrow-down text-[9px]"></i></button>
+          <button onclick="dupSlide(${i})" title="Duplicate" class="p-1 bg-zinc-800 rounded"><i class="fa-solid fa-copy text-[9px]"></i></button>
+          <button onclick="deleteSlide(${i})" class="p-1 bg-rose-950/40 text-rose-300 rounded"><i class="fa-solid fa-trash text-[9px]"></i></button>
+        </div>
+      </div>`).join('');
+  }
+
+  if(!slides.length){
+    el.innerHTML=`<div class="h-full flex flex-col items-center justify-center" style="background:${c.bg}">
+      <i class="fa-solid fa-shirt text-2xl mb-3" style="color:${c.muted}"></i>
+      <p class="text-sm" style="color:${c.muted}">Empty lookbook</p>
+      <p class="text-xs mt-1" style="color:${c.muted}">Add a look to preview layouts</p>
+    </div>`;
+    persistLocalProject();
+    return;
+  }
+
+  const cur=slides[currentSlideIndex];
+  el.innerHTML=buildLayout(layoutKey,cur,c,company,collection,currentSlideIndex,slides.length);
+  persistLocalProject();
+}
+
+// ========== SAVE / LOAD ==========
+function saveProject(){
+  const data=projectSnapshot();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
+  a.download=(data.company||'lookbook').replace(/\s+/g,'_')+'_project.json';document.body.appendChild(a);a.click();a.remove();
+}
+function loadProject(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';
+  inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{
+    const d=JSON.parse(r.result);slides=d.slides||[];
+    [['company','brand-company'],['collection','brand-collection'],['layout','layout-select'],['theme','theme-select'],['ratio','ratio-select']].forEach(([k,id])=>{if(d[k])document.getElementById(id).value=d[k]});
+    currentSlideIndex=0;renderApp();
+  }catch(e){alert('This is not a valid lookbook project file.')}};r.readAsText(f)};
+  inp.click();
+}
+
+// ========== CAPTURE SLIDE AS IMAGE (exact app design) ==========
+async function captureAllSlidesAsImages(){
+  const company=document.getElementById('brand-company').value||'ATELIER';
+  const collection=document.getElementById('brand-collection').value||'';
+  const layoutKey=document.getElementById('layout-select').value;
+  const c=themes[document.getElementById('theme-select').value];
+  const ratio=document.getElementById('ratio-select').value;
+  const W=960, H=ratio==='4:3'?720:540;
+
+  if(typeof html2canvas==='undefined'){
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload=resolve;s.onerror=reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  const stage=document.createElement('div');
+  stage.style.cssText=`position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:2147483647;opacity:1;pointer-events:none;overflow:hidden;background:${c.card};`;
+  stage.setAttribute('aria-hidden','true');
+  document.body.appendChild(stage);
+
+  const images=[];
+  for(let idx=0; idx<slides.length; idx++){
+    const s=slides[idx];
+    stage.innerHTML='';
+    const page=document.createElement('div');
+    page.style.cssText=`position:relative;width:${W}px;height:${H}px;display:flex;flex-direction:column;overflow:hidden;background:${c.card};color:${c.text};font-family:Inter,system-ui,sans-serif;line-height:normal;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;`;
+    page.innerHTML=buildLayout(layoutKey,s,c,company,collection,idx,slides.length);
+    stage.appendChild(page);
+
+    const imgs=[...page.querySelectorAll('img')];
+    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res;})));
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    // Give web fonts and browser layout a moment to settle before rasterizing text for PDF/PPTX.
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await new Promise(r=>setTimeout(r,350));
+
+    const canvas=await html2canvas(page,{
+      scale:3,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:c.card || '#ffffff',
+      width:W,
+      height:H,
+      windowWidth:W,
+      windowHeight:H,
+      logging:false
+    });
+    images.push(canvas.toDataURL('image/jpeg',0.97));
+  }
+
+  document.body.removeChild(stage);
+  return images;
+}
+
+async function getImageSize(dataUrl){
+  return new Promise(resolve=>{
+    if(!dataUrl) return resolve({width:1,height:1});
+    const img=new Image();
+    img.onload=()=>resolve({width:img.naturalWidth||img.width||1,height:img.naturalHeight||img.height||1});
+    img.onerror=()=>resolve({width:1,height:1});
+    img.src=dataUrl;
+  });
+}
+
+function pptxHex(color,fallback='FFFFFF'){
+  return String(color||fallback).replace('#','').toUpperCase();
+}
+
+async function addContainedPptxImage(slide,dataUrl,x,y,w,h){
+  if(!dataUrl) return;
+  const size=await getImageSize(dataUrl);
+  const boxRatio=w/h, imgRatio=size.width/size.height;
+  let iw=w,ih=h,ix=x,iy=y;
+  if(imgRatio>boxRatio){ih=w/imgRatio;iy=y+(h-ih)/2;}
+  else{iw=h*imgRatio;ix=x+(w-iw)/2;}
+  slide.addImage({data:dataUrl,x:ix,y:iy,w:iw,h:ih});
+}
+
+// PPTX export uses native PowerPoint text boxes and shapes. Garment photos stay
+// separate image objects; labels, specifications, headings and notes are editable.
+async function exportPPTX(){
+  if(!slides.length){alert('Add looks first.');return}
+  const company=document.getElementById('brand-company').value||'ATELIER';
+  const collection=document.getElementById('brand-collection').value||'COLLECTION';
+  const layoutKey=document.getElementById('layout-select').value;
+  const btn=document.querySelector('button[onclick="exportPPTX()"]');
+  const oldHtml=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';}
+  try{
+    const pptx=new PptxGenJS();
+    const ratio=document.getElementById('ratio-select').value;
+    const W=13.333, H=ratio==='4:3'?10:7.5;
+    pptx.defineLayout({name:'LOOKBOOK_EDITABLE',width:W,height:H}); pptx.layout='LOOKBOOK_EDITABLE';
+    pptx.author=company; pptx.subject='Editable fashion garment lookbook'; pptx.title=company+' Lookbook'; pptx.company=company;
+    pptx.theme={headFontFace:'Aptos Display',bodyFontFace:'Aptos',lang:'en-US'};
+    const c=themes[document.getElementById('theme-select').value]||themes.light_clean;
+    const bg=pptxHex(c.bg), card=pptxHex(c.card), fg=pptxHex(c.text), accent=pptxHex(c.accent), muted=pptxHex(c.muted), border=pptxHex(c.border);
+    const margin=0.42, fieldsY=1.25, footerY=H-0.42;
+    const isCentered=['centered_dual','centered_single','luxury_frame','atelier_minimal','swiss_grid'].includes(layoutKey);
+    const isLeftSpecs=['specs_left_dual','specs_left_single'].includes(layoutKey);
+    const isHero=['editorial_bleed','editorial_split','product_focus','single_focus','magazine_hero','asymmetry_editorial'].includes(layoutKey);
+    const isCompact=['catalog_compact','line_sheet','retail_range','studio_contact','executive_summary','buyer_review','merchandising_board','color_story'].includes(layoutKey);
+    const isBold=['bold_type','runway_bar','modern_accent','dark_editorial','premium_catalog'].includes(layoutKey);
+    const isStack=['vertical_stack','lookbook_row','technical_grid','denim_spec_sheet','wash_detail','spec_sidebar'].includes(layoutKey);
+
+    function txt(slide,text,x,y,w,h,opts={}){slide.addText(String(text??''),{x,y,w,h,fontFace:opts.fontFace||'Aptos',fontSize:opts.fontSize||9,color:opts.color||fg,bold:!!opts.bold,italic:!!opts.italic,align:opts.align||'left',valign:opts.valign||'mid',margin:opts.margin===undefined?0.02:opts.margin,breakLine:false,fit:'shrink',charSpacing:opts.charSpacing||0,paraSpaceAfterPt:0});}
+    function rect(slide,x,y,w,h,fill=card,lineColor=border){slide.addShape(pptx.ShapeType.rect,{x,y,w,h,line:{color:lineColor,width:0.8},fill:{color:fill}})}
+    async function photo(slide,src,label,x,y,w,h){
+      rect(slide,x,y,w,h,card,border); txt(slide,label,x+0.12,y+0.08,w-0.24,0.18,{fontSize:7.5,bold:true,color:muted,charSpacing:1});
+      if(src) await addContainedPptxImage(slide,src,x+0.12,y+0.32,w-0.24,h-0.42);
+      else txt(slide,'ADD GARMENT PHOTO',x+0.1,y+h/2-0.1,w-0.2,0.2,{fontSize:8,color:muted,align:'center'});
+    }
+    for(let idx=0;idx<slides.length;idx++){
+      const item=slides[idx], slide=pptx.addSlide(); slide.background={color:bg};
+      const styleValue=item.fields?.style?.value||`LOOK ${String(idx+1).padStart(2,'0')}`;
+      const active=activeFields(item), notes=item.notes||'';
+      // Selected layout changes composition while keeping all text, shapes and photos editable.
+      if(isCentered){
+        txt(slide,company.toUpperCase(),margin,0.28,W-2*margin,0.3,{fontFace:'Aptos Display',fontSize:16,bold:true,color:accent,align:'center',charSpacing:2});
+        txt(slide,`${collection.toUpperCase()}  ·  ${String(idx+1).padStart(2,'0')}`,margin,0.64,W-2*margin,0.18,{fontSize:8,color:muted,align:'center',charSpacing:1});
+      }else if(isBold){
+        rect(slide,0,0,0.16,H,accent,accent);
+        txt(slide,company.toUpperCase(),margin,0.24,7,0.28,{fontSize:15,bold:true,color:accent,charSpacing:1.5});
+        txt(slide,collection.toUpperCase(),margin,0.58,7,0.18,{fontSize:8,color:muted,charSpacing:1});
+        txt(slide,styleValue,W*0.63,0.28,W*0.30,0.32,{fontSize:15,bold:true,color:fg,align:'right'});
+      }else{
+        txt(slide,company.toUpperCase(),margin,0.24,8,0.28,{fontSize:14,bold:true,color:accent,charSpacing:1.4});
+        txt(slide,collection.toUpperCase(),margin,0.57,8,0.18,{fontSize:8,color:muted,charSpacing:1});
+        txt(slide,`LOOK ${String(idx+1).padStart(2,'0')}`,W-2.2,0.35,1.7,0.2,{fontSize:8,bold:true,color:muted,align:'right'});
+      }
+      slide.addShape(pptx.ShapeType.line,{x:margin,y:0.91,w:W-margin*2,h:0,line:{color:layoutKey==='luxury_frame'?accent:border,width:layoutKey==='luxury_frame'?1.5:0.8}});
+      const top=1.12, bottom=H-1.72, gap=0.18;
+      let photoX=margin, photoY=top, photoW=W*0.56, photoH=bottom;
+      let specX=photoX+photoW+0.28, specY=top, specW=W-specX-margin, specH=bottom;
+      if(isLeftSpecs){specX=margin;specW=W*0.32;photoX=specX+specW+0.28;photoW=W-photoX-margin;}
+      if(isCentered){photoX=W*0.10;photoW=W*0.80;photoY=1.1;photoH=H*0.52;specX=margin;specW=W-2*margin;specY=photoY+photoH+0.18;specH=H-specY-0.92;}
+      if(isHero){photoX=margin;photoW=W*0.64;photoH=bottom+0.22;specX=photoX+photoW+0.28;specW=W-specX-margin;}
+      if(isCompact){photoW=W*0.48;specX=photoX+photoW+0.22;specW=W-specX-margin;}
+      if(isStack){photoX=margin;photoW=W*0.66;specX=photoX+photoW+0.24;specW=W-specX-margin;}
+      if(layoutKey==='editorial_bleed'||layoutKey==='vertical_stack'){photoY=0.35;photoH=H*0.58;photoX=margin;photoW=W-2*margin;specX=margin;specY=photoY+photoH+0.18;specW=W-2*margin;specH=H-specY-0.75;}
+      if(layoutKey==='lookbook_row'){photoW=W*0.70;specX=photoX+photoW+0.25;specW=W-specX-margin;}
+      if(layoutKey==='bold_type'){specX=margin;specW=W*0.28;photoX=specX+specW+0.25;photoW=W-photoX-margin;}
+      if(layoutKey==='runway_bar'){photoX=0.75;photoW=W-1.1;specX=photoX;specW=photoW;}
+      if(layoutKey==='single_focus'||layoutKey==='product_focus'){photoX=margin;photoW=W-2*margin;photoH=H*0.57;specX=margin;specY=photoY+photoH+0.12;specW=W-2*margin;specH=H-specY-0.8;}
+      if(layoutKey==='studio_contact'){photoW=W*0.55;specX=photoX+photoW+0.2;specW=W-specX-margin;}
+      const boxGap=0.16, boxW=(photoW-boxGap)/2;
+      if(item.single||!item.back||!item.front){await photo(slide,item.front||item.back,item.front?'FRONT':'BACK',photoX,photoY,photoW,photoH);}
+      else{await photo(slide,item.front,'FRONT',photoX,photoY,boxW,photoH);await photo(slide,item.back,'BACK',photoX+boxW+boxGap,photoY,boxW,photoH);}
+      if(item.detail){const dw=2.2,dh=2.2,ps=item.detailPos||'br',dx=ps[1]==='r'?W-dw-0.5:0.5,dy=ps[0]==='b'?H-dh-0.6:1.0;rect(slide,dx,dy,dw,dh,card,accent);await addContainedPptxImage(slide,item.detail,dx+0.08,dy+0.08,dw-0.16,dh-0.16);}
+      // Editable product specification panel, repositioned according to the selected layout.
+      rect(slide,specX,specY,specW,specH,card,border);
+      const panelH=layoutKey==='denim_spec_sheet'||layoutKey==='wash_detail'?0.62:0.45;
+      rect(slide,specX,specY,specW,panelH,c.isDark?'202020':'F2F2F2',border);
+      txt(slide,layoutKey==='wash_detail'?'WASH & FINISH DETAILS':layoutKey==='denim_spec_sheet'?'DENIM SPEC SHEET':layoutKey==='retail_range'?'RANGE DETAILS':'PRODUCT SPECIFICATIONS',specX+0.15,specY+0.12,specW-0.3,0.18,{fontSize:8,bold:true,color:accent,charSpacing:0.8});
+      const notesH=notes?0.75:0.08;
+      const rowTop=specY+panelH+0.12;
+      const available=Math.max(0.55,specH-panelH-notesH-0.25);
+      const rowH=Math.min(0.47,available/Math.max(active.length,1));
+      active.forEach((f,i)=>{
+        const yy=rowTop+i*rowH;
+        if(i>0) slide.addShape(pptx.ShapeType.line,{x:specX+0.13,y:yy-0.035,w:specW-0.26,h:0,line:{color:border,width:0.5}});
+        const labelW=specW*(isCompact?0.35:0.39);
+        txt(slide,String(f.label||'').toUpperCase(),specX+0.15,yy,specW*0.36,0.19,{fontSize:isCompact?7:7.5,bold:true,color:muted,charSpacing:0.35});
+        txt(slide,String(f.value||''),specX+labelW+0.04,yy-0.01,specW-labelW-0.23,0.24,{fontSize:isCompact?8.5:9.5,color:fg});
+      });
+      if(notes){const ny=specY+specH-notesH+0.04;slide.addShape(pptx.ShapeType.line,{x:specX+0.14,y:ny-0.04,w:specW-0.28,h:0,line:{color:border,width:0.7}});txt(slide,'DESIGN NOTES',specX+0.15,ny,specW-0.3,0.16,{fontSize:7,bold:true,color:accent,charSpacing:0.8});txt(slide,notes,specX+0.15,ny+0.19,specW-0.3,notesH-0.25,{fontSize:8,color:muted,valign:'top'});}
+      slide.addShape(pptx.ShapeType.line,{x:margin,y:footerY,w:W-margin*2,h:0,line:{color:border,width:0.7}});
+      txt(slide,`${collection}  ·  CONFIDENTIAL`,margin,footerY+0.08,5,0.15,{fontSize:7,color:muted});
+      txt(slide,`${idx+1} / ${slides.length}`,W-1.2,footerY+0.08,0.78,0.15,{fontSize:7,color:muted,align:'right'});
+    }
+    await pptx.writeFile({fileName:`${company.replace(/\s+/g,'_')}_Editable_Lookbook.pptx`});
+  }catch(err){console.error(err);alert('Export failed: '+(err.message||err));}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=oldHtml;}}
+}
+
+
+async function exportPPTXExact(){
+  if(!slides.length){alert('Add looks first.');return}
+  const company=document.getElementById('brand-company').value||'ATELIER';
+  const btn=document.querySelector('button[onclick="exportPPTXExact()"]');const old=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';}
+  try{
+    const images=await captureAllSlidesAsImages();
+    const W=10,H=document.getElementById('ratio-select').value==='4:3'?7.5:5.625;
+    const pptx=new PptxGenJS();pptx.defineLayout({name:'LB_EXACT',width:W,height:H});pptx.layout='LB_EXACT';
+    pptx.author=company;pptx.title=company+' Lookbook';
+    images.forEach((d,i)=>{const sl=pptx.addSlide();sl.addImage({data:d,x:0,y:0,w:W,h:H});
+      sl.addNotes(activeFields(slides[i]).map(f=>f.label+': '+f.value).join('\n')+(slides[i].notes?'\n'+slides[i].notes:''));});
+    await pptx.writeFile({fileName:`${company.replace(/\s+/g,'_')}_Lookbook.pptx`});
+  }catch(err){console.error(err);alert('PPTX export failed: '+(err.message||err));}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=old;}}
+}
+
+async function exportPDF(){
+  if(!slides.length){alert('Add looks first.');return}
+  const company=document.getElementById('brand-company').value||'ATELIER';
+  const btn=document.querySelector('button[onclick="exportPDF()"]');
+  const oldHtml=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';}
+  try{
+    const images=await captureAllSlidesAsImages();
+    if(!images.length) throw new Error('No slide images were generated.');
+    const ratio=document.getElementById('ratio-select').value;
+    const pageW=960, pageH=ratio==='4:3'?720:540;
+    const { jsPDF } = window.jspdf || {};
+    if(jsPDF){
+      const pdf=new jsPDF({orientation:'landscape',unit:'px',format:[pageW,pageH],compress:true,hotfixes:['px_scaling']});
+      for(let i=0;i<images.length;i++){
+        if(i>0) pdf.addPage([pageW,pageH],'landscape');
+        pdf.addImage(images[i],'JPEG',0,0,pageW,pageH,undefined,'FAST');
+      }
+      pdf.save(`${company.replace(/\s+/g,'_')}_Lookbook.pdf`);
+    }else{
+      // html2pdf fallback; keep source pages in the viewport so html2canvas does not produce black pages.
+      const container=document.getElementById('pdf-export-container');
+      container.innerHTML='';
+      container.style.cssText=`position:fixed;left:0;top:0;width:${pageW}px;background:#ffffff;z-index:2147483646;opacity:1;pointer-events:none;`;
+      images.forEach((dataUrl,i)=>{
+        const page=document.createElement('div');
+        page.style.cssText=`width:${pageW}px;height:${pageH}px;page-break-after:${i===images.length-1?'auto':'always'};break-after:${i===images.length-1?'auto':'page'};background:#ffffff;margin:0;padding:0;overflow:hidden;`;
+        const img=document.createElement('img');img.src=dataUrl;img.style.cssText=`width:${pageW}px;height:${pageH}px;display:block;`;
+        page.appendChild(img);container.appendChild(page);
+      });
+      await html2pdf().from(container).set({margin:0,filename:`${company.replace(/\s+/g,'_')}_Lookbook.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:1,useCORS:true,backgroundColor:'#ffffff',logging:false},jsPDF:{unit:'px',format:[pageW,pageH],orientation:'landscape'}}).save();
+      container.innerHTML='';container.style.cssText='';
+    }
+  }catch(err){console.error(err);alert('PDF export failed: '+(err.message||err));}
+  finally{const container=document.getElementById('pdf-export-container');if(container){container.innerHTML='';container.style.cssText='';}if(btn){btn.disabled=false;btn.innerHTML=oldHtml;}}
+}
+
+// INIT — restore the last project before the first render so refresh does not clear the lookbook.
+(async()=>{
+  initSelects();
+  await restoreLocalProject();
+  renderUploadPreviews();
+  renderDetailPreview();
+  renderApp();
+})();
+</script>
+</body>
+</html>
